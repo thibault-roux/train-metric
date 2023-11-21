@@ -75,7 +75,7 @@ def train():
     val_loader = DataLoader(HATSDataset(val_dataset, embedding_model), batch_size=32, shuffle=False)
 
     # Training loop
-    num_epochs = 10
+    num_epochs = 0
     for epoch in range(num_epochs):
         siamese_network.train()
         for batch in train_loader:
@@ -103,7 +103,14 @@ def train():
         print(f'Epoch {epoch + 1}/{num_epochs}, Loss: {loss.item()}, Val Accuracy: {val_accuracy}')
 
     # Save the trained model if needed
-    torch.save(siamese_network.state_dict(), 'siamese_network.pth')
+    torch.save(embedding_model.state_dict(), 'models/fine_tuned_sentence_transformer.pth')
+    torch.save(siamese_network.state_dict(), 'models/siamese_network.pth')
+
+def load_model():
+    embedding_model = SentenceTransformer('dangvantuan/sentence-camembert-large')
+    siamese_network = SiameseNetwork(embedding_model)
+    siamese_network.load_state_dict(torch.load('models/siamese_network.pth'))
+    return siamese_network
 
 if __name__ == '__main__':
     train()
