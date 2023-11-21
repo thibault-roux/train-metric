@@ -75,7 +75,7 @@ def train():
     val_loader = DataLoader(HATSDataset(val_dataset, embedding_model), batch_size=32, shuffle=False)
 
     # Training loop
-    num_epochs = 0
+    num_epochs = 10
     for epoch in range(num_epochs):
         siamese_network.train()
         for batch in train_loader:
@@ -113,4 +113,5 @@ def load_model():
     return siamese_network
 
 if __name__ == '__main__':
+    print("Lauching train.py")
     train()
