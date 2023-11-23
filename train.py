@@ -106,7 +106,8 @@ def train():
 
         val_outputs = torch.sigmoid(torch.tensor(val_outputs)).numpy()
         val_preds = (val_outputs > 0.5).astype(int)
-        val_accuracy = accuracy_score(val_labels, val_preds)
+        val_labels_binary = (np.array(val_labels) > 0.5).astype(int)
+        val_accuracy = accuracy_score(val_labels_binary, val_preds)
         print(f'Epoch {epoch + 1}/{num_epochs}, Loss: {loss.item()}, Val Accuracy: {val_accuracy}')
 
     # Save the trained model if needed
