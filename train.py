@@ -40,6 +40,12 @@ def read_hats():
             dictionary["nbrA"] = int(line[2])
             dictionary["hypB"] = line[3]
             dictionary["nbrB"] = int(line[4])
+            if dictionary["nbrA"] > dictionary["nbrB"]:
+                dictionary["annotation"] = 1
+            elif dictionary["nbrA"] < dictionary["nbrB"]:
+                dictionary["annotation"] = 0
+            else:
+                dictionary["annotation"] = 0.5
             dataset.append(dictionary)
     return dataset
 
