@@ -18,14 +18,15 @@ class SiameseNetwork(nn.Module):
         )
 
     def forward(self, ref, hyp_a, hyp_b):
-        ref_embedding = self.embedding_model.encode(ref)
-        hyp_a_embedding = self.embedding_model.encode(hyp_a)
-        hyp_b_embedding = self.embedding_model.encode(hyp_b)
+        ref_embedding = torch.tensor(self.embedding_model.encode(ref))
+        hyp_a_embedding = torch.tensor(self.embedding_model.encode(hyp_a))
+        hyp_b_embedding = torch.tensor(self.embedding_model.encode(hyp_b))
 
         concatenated = torch.cat([ref_embedding, hyp_a_embedding, hyp_b_embedding], dim=1)
         output = self.fc(concatenated)
 
         return output
+
 
 def read_hats():
     # dataset = [{"reference": ref, "hypA": hypA, "nbrA": nbrA, "hypB": hypB, "nbrB": nbrB}, ...]
