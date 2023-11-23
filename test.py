@@ -41,7 +41,7 @@ def evaluator(metric, dataset, memory=0, certitude=0.7, verbose=True):
     if verbose:
         bar = progressbar.ProgressBar(max_value=len(dataset))
     for i in range(len(dataset)):
-        if i > 50:
+        if i > 100:
             break
         if verbose:
             bar.update(i)
@@ -67,15 +67,6 @@ def evaluator(metric, dataset, memory=0, certitude=0.7, verbose=True):
         else:
             ignored += 1
     print()
-    print("correct:", correct)
-    print("incorrect:", incorrect)
-    print("egal:", egal)
-    print("ratio correct:", correct/(correct+incorrect+egal)*100)
-    print("ratio egal: ", egal/(correct+incorrect+egal)*100)
-    print()
-    print("ratio ignored:", ignored/(ignored+accepted)*100)
-    print("ignored:", ignored)
-    print("accepted:", accepted)
     return correct/(correct+incorrect+egal)*100
 
 
@@ -97,7 +88,6 @@ if __name__ == '__main__':
     model = SentenceTransformer('dangvantuan/sentence-camembert-large')
     model.load_state_dict(torch.load('models/fine_tuned_sentence_transformer.pth'))
     # model = model.eval()
-    model.reset_parameters()
     memory=model
 
     print("Evaluating...")
