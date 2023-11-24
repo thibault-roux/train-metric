@@ -3,7 +3,7 @@
 def read_hats():
     # dataset = [{"reference": ref, "hypA": hypA, "nbrA": nbrA, "hypB": hypB, "nbrB": nbrB}, ...]
     dataset = []
-    with open("datasets/hats.txt", "r", encoding="utf8") as file:
+    with open("hats.txt", "r", encoding="utf8") as file:
         next(file)
         for line in file:
             line = line[:-1].split("\t")
@@ -23,10 +23,12 @@ def read_hats():
     return dataset
 
 def write_new_hats(dataset):
-    with open("datasets/hats_annotation.txt", "w", encoding="utf8") as file:
+    with open("hats_annotation.txt", "w", encoding="utf8") as file:
         file.write("reference\thypA\thypB\tannotation\n")
         for item in dataset:
             file.write(item["ref"] + "\t" + item["hypA"] + "\t" + item["hypB"] + "\t" + str(item["annotation"]) + "\n")
+        for item in dataset:
+            file.write(item["ref"] + "\t" + item["hypB"] + "\t" + item["hypA"] + "\t" + str(1-item["annotation"]) + "\n")
 
 if __name__ == "__main__":
     dataset = read_hats()
