@@ -5,6 +5,7 @@ from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
+import numpy as np
 
 # Define the Siamese network
 class SiameseNetwork(nn.Module):
@@ -16,6 +17,11 @@ class SiameseNetwork(nn.Module):
             nn.ReLU(),
             nn.Linear(128, 1),
         )
+        for param in self.embedding_model.parameters():
+            if len(param.size()) > 1:
+                nn.init.xavier_uniform_(param.data)
+            else:
+                nn.init.zeros_(param.data)
 
     def forward(self, ref, hyp_a, hyp_b):
         ref_embedding = torch.tensor(self.embedding_model.encode(ref))
@@ -31,22 +37,15 @@ class SiameseNetwork(nn.Module):
 def read_hats():
     # dataset = [{"reference": ref, "hypA": hypA, "nbrA": nbrA, "hypB": hypB, "nbrB": nbrB}, ...]
     dataset = []
-    with open("datasets/hats.txt", "r", encoding="utf8") as file:
+    with open("datasets/hats_annotation.txt", "r", encoding="utf8") as file:
         next(file)
         for line in file:
             line = line[:-1].split("\t")
             dictionary = dict()
             dictionary["ref"] = line[0]
             dictionary["hypA"] = line[1]
-            dictionary["nbrA"] = int(line[2])
-            dictionary["hypB"] = line[3]
-            dictionary["nbrB"] = int(line[4])
-            if dictionary["nbrA"] > dictionary["nbrB"]:
-                dictionary["annotation"] = 1
-            elif dictionary["nbrA"] < dictionary["nbrB"]:
-                dictionary["annotation"] = 0
-            else:
-                dictionary["annotation"] = 0.5
+            dictionary["hypB"] = line[2]
+            dictionary["annotation"] = int(line[3])
             dataset.append(dictionary)
     return dataset
 
@@ -82,7 +81,7 @@ def train():
     val_loader = DataLoader(HATSDataset(val_dataset, embedding_model), batch_size=32, shuffle=False)
 
     # Training loop
-    num_epochs = 10
+    num_epochs = 1
     for epoch in range(num_epochs):
         siamese_network.train()
         for batch in train_loader:
