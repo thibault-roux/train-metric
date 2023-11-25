@@ -6,6 +6,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 import numpy as np
+import progressbar
 
 # Define the Siamese network
 class SiameseNetwork(nn.Module):
@@ -17,11 +18,11 @@ class SiameseNetwork(nn.Module):
             nn.ReLU(),
             nn.Linear(128, 1),
         )
-        for param in self.embedding_model.parameters():
-            if len(param.size()) > 1:
-                nn.init.xavier_uniform_(param.data)
-            else:
-                nn.init.zeros_(param.data)
+        # for param in self.embedding_model.parameters():
+        #     if len(param.size()) > 1:
+        #         nn.init.xavier_uniform_(param.data)
+        #     else:
+        #         nn.init.zeros_(param.data)
 
     def forward(self, ref, hyp_a, hyp_b):
         ref_embedding = torch.tensor(self.embedding_model.encode(ref))
@@ -45,7 +46,7 @@ def read_hats():
             dictionary["ref"] = line[0]
             dictionary["hypA"] = line[1]
             dictionary["hypB"] = line[2]
-            dictionary["annotation"] = int(line[3])
+            dictionary["annotation"] = float(line[3])
             dataset.append(dictionary)
     return dataset
 
@@ -81,17 +82,23 @@ def train():
     val_loader = DataLoader(HATSDataset(val_dataset, embedding_model), batch_size=32, shuffle=False)
 
     # Training loop
-    num_epochs = 1
+    num_epochs = 10
     for epoch in range(num_epochs):
+        print(epoch)
         siamese_network.train()
-        for batch in train_loader:
+        # Training progressbar
+        bar = progressbar.ProgressBar(maxval=len(train_loader))
+        bar.start()
+        for i, batch in enumerate(train_loader):
+            # for batch in train_loader:
             ref, hyp_a, hyp_b, annotation = batch
             optimizer.zero_grad()
             output = siamese_network(ref, hyp_a, hyp_b)
             loss = criterion(output, annotation.float().view(-1, 1))
             loss.backward()
             optimizer.step()
-
+            bar.update(i)
+            
         # Validation
         siamese_network.eval()
         val_outputs = []
