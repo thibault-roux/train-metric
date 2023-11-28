@@ -82,26 +82,29 @@ if __name__ == '__main__':
     cert_X = 1
 
     # useful for the metric but we do not need to recompute every time
-    print("Importing...")    
+    print("Importing...")
+
+
+    check_weight = True 
     
+    if check_weight:
+        model1 = SentenceTransformer('dangvantuan/sentence-camembert-large')
+        model1.load_state_dict(torch.load('models/fine_tuned_sentence_transformer.pth'))
+        model2 = SentenceTransformer('dangvantuan/sentence-camembert-large')
+        # Check if models have the same weights
+        are_models_equal = all(p1.equal(p2) for p1, p2 in zip(model1.parameters(), model2.parameters()))
+        if are_models_equal:
+            print("Model weights are the same.")
+        else:
+            print("Model weights are different.")
+        exit(0)
+
+
     # SD_sentence_camembert_large
-    model1 = SentenceTransformer('dangvantuan/sentence-camembert-large')
-    # model.load_state_dict(torch.load('models/fine_tuned_sentence_transformer.pth'))
+    model = SentenceTransformer('dangvantuan/sentence-camembert-large')
+    model.load_state_dict(torch.load('models/fine_tuned_sentence_transformer.pth'))
     # model = model.eval()
-    
-    model1.load_state_dict(torch.load('models/fine_tuned_sentence_transformer.pth'))
-    model2 = SentenceTransformer('dangvantuan/sentence-camembert-large')
-    # Check if models have the same weights
-    are_models_equal = all(p1.equal(p2) for p1, p2 in zip(model1.parameters(), model2.parameters()))
-    if are_models_equal:
-        print("Model weights are the same.")
-    else:
-        print("Model weights are different.")
-
-
-    exit(-1)
     memory=model
-
 
     print("Evaluating...")
     x_score = evaluator(semdist, dataset, memory=memory, certitude=cert_X)
