@@ -20,11 +20,6 @@ class SiameseNetwork(nn.Module):
             nn.ReLU(),
             nn.Linear(128, 1),
         )
-        # for param in self.embedding_model.parameters():
-        #     if len(param.size()) > 1:
-        #         nn.init.xavier_uniform_(param.data)
-        #     else:
-        #         nn.init.zeros_(param.data)
 
     def forward(self, ref, hyp_a, hyp_b):
         ref_embedding = torch.tensor(self.embedding_model.encode(ref))
@@ -36,8 +31,10 @@ class SiameseNetwork(nn.Module):
 
         return output
 
-    def compare_embeddings(self, embeddings_model2):
-        are_models_equal = all(p1.equal(p2) for p1, p2 in zip(embeddings_model.parameters(), embeddings_model2.parameters()))
+    def compare_embedding(self, embedding_model2):
+        A = self.embedding_model.cpu().parameters()
+        B = embedding_model2.cpu().parameters()
+        are_models_equal = all(p1.equal(p2) for p1, p2 in zip(A, B))
         if are_models_equal:
             print("Model weights are the same.")
         else:
@@ -82,7 +79,7 @@ def train():
     embedding_model = SentenceTransformer('dangvantuan/sentence-camembert-large')
     siamese_network = SiameseNetwork(embedding_model)
     criterion = nn.BCEWithLogitsLoss()  # Binary cross-entropy loss for binary classification
-    optimizer = torch.optim.Adam(siamese_network.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(list(embedding_model.parameters()) + list(siamese_network.parameters()), lr=0.001)
 
     # Split the dataset into train and validation sets
     train_dataset, val_dataset = train_test_split(read_hats(), test_size=0.2, random_state=42)
@@ -120,8 +117,9 @@ def train():
             else:
                 print("Weights have not been updated.")
 
+            embedding_model2 = SentenceTransformer('dangvantuan/sentence-camembert-large')
             print("Check if they are different")
-            siamese_network.compare_embeddings(embedding_model)
+            siamese_network.compare_embedding(embedding_model2)
             input()
 
             bar.update(i)
@@ -156,3 +154,8 @@ def load_model():
 if __name__ == '__main__':
     print("Lauching train.py")
     train()
+
+
+
+# things observed
+# - the model weights are the same
