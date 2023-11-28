@@ -31,15 +31,6 @@ class SiameseNetwork(nn.Module):
 
         return output
 
-    def compare_embedding(self, embedding_model2):
-        A = self.embedding_model.cpu().parameters()
-        B = embedding_model2.cpu().parameters()
-        are_models_equal = all(p1.equal(p2) for p1, p2 in zip(A, B))
-        if are_models_equal:
-            print("Model weights are the same.")
-        else:
-            print("Model weights are different.")
-
 
 def read_hats():
     # dataset = [{"reference": ref, "hypA": hypA, "nbrA": nbrA, "hypB": hypB, "nbrB": nbrB}, ...]
@@ -103,25 +94,14 @@ def train():
             loss = criterion(output, annotation.float().view(-1, 1))
             loss.backward()
 
-            # Get the model parameters before the optimization step
-            old_params = {name: param.clone() for name, param in siamese_network.named_parameters()}
-
+            # Check gradients of embedding parameters
+            embedding_grads = [param.grad for param in embedding_model.parameters() if param.grad is not None]
+            print("embedding_grads:", embedding_grads)
+            if embedding_grads:
+                max_grad = max(grad.max().item() for grad in embedding_grads)
+                min_grad = min(grad.min().item() for grad in embedding_grads)
+                print(f'Max embedding grad: {max_grad}, Min embedding grad: {min_grad}')
             optimizer.step()
-
-            # Get the model parameters after the optimization step
-            new_params = {name: param for name, param in siamese_network.named_parameters()}
-            # Check if any parameter has been updated
-            parameters_updated = any((old_params[name] != new_params[name]).any() for name in old_params)
-            if parameters_updated:
-                print("Weights have been updated.")
-            else:
-                print("Weights have not been updated.")
-
-            embedding_model2 = SentenceTransformer('dangvantuan/sentence-camembert-large')
-            print("Check if they are different")
-            siamese_network.compare_embedding(embedding_model2)
-            input()
-
             bar.update(i)
             
         # Validation
