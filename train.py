@@ -8,6 +8,8 @@ from sklearn.metrics import accuracy_score
 import numpy as np
 import progressbar
 
+# myenv2
+
 # Define the Siamese network
 class SiameseNetwork(nn.Module):
     def __init__(self, embedding_model):
@@ -33,6 +35,13 @@ class SiameseNetwork(nn.Module):
         output = self.fc(concatenated)
 
         return output
+
+    def compare_embeddings(self, embeddings_model2):
+        are_models_equal = all(p1.equal(p2) for p1, p2 in zip(embeddings_model.parameters(), embeddings_model2.parameters()))
+        if are_models_equal:
+            print("Model weights are the same.")
+        else:
+            print("Model weights are different.")
 
 
 def read_hats():
@@ -82,7 +91,7 @@ def train():
     val_loader = DataLoader(HATSDataset(val_dataset, embedding_model), batch_size=32, shuffle=False)
 
     # Training loop
-    num_epochs = 10
+    num_epochs = 1
     for epoch in range(num_epochs):
         print(epoch)
         siamese_network.train()
@@ -96,7 +105,25 @@ def train():
             output = siamese_network(ref, hyp_a, hyp_b)
             loss = criterion(output, annotation.float().view(-1, 1))
             loss.backward()
+
+            # Get the model parameters before the optimization step
+            old_params = {name: param.clone() for name, param in siamese_network.named_parameters()}
+
             optimizer.step()
+
+            # Get the model parameters after the optimization step
+            new_params = {name: param for name, param in siamese_network.named_parameters()}
+            # Check if any parameter has been updated
+            parameters_updated = any((old_params[name] != new_params[name]).any() for name in old_params)
+            if parameters_updated:
+                print("Weights have been updated.")
+            else:
+                print("Weights have not been updated.")
+
+            print("Check if they are different")
+            siamese_network.compare_embeddings(embedding_model)
+            input()
+
             bar.update(i)
             
         # Validation
@@ -117,8 +144,8 @@ def train():
         print(f'Epoch {epoch + 1}/{num_epochs}, Loss: {loss.item()}, Val Accuracy: {val_accuracy}')
 
     # Save the trained model if needed
-    torch.save(embedding_model.state_dict(), 'models/fine_tuned_sentence_transformer.pth')
-    torch.save(siamese_network.state_dict(), 'models/siamese_network.pth')
+    torch.save(embedding_model.state_dict(), 'models/fine_tuned_sentence_transformer_v2.pth')
+    torch.save(siamese_network.state_dict(), 'models/siamese_network_v2.pth')
 
 def load_model():
     embedding_model = SentenceTransformer('dangvantuan/sentence-camembert-large')

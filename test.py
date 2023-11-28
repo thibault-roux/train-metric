@@ -75,6 +75,38 @@ def write(namefile, x, y):
         file.write(namefile + "," + str(x) + "," + str(y) + "\n")
 
 
+
+
+import torch.nn as nn
+
+
+# Define the Siamese network
+class SiameseNetwork(nn.Module):
+    def __init__(self, embedding_model):
+        super(SiameseNetwork, self).__init__()
+        self.embedding_model = embedding_model
+        self.fc = nn.Sequential(
+            nn.Linear(3 * embedding_model.get_sentence_embedding_dimension(), 128),
+            nn.ReLU(),
+            nn.Linear(128, 1),
+        )
+        # for param in self.embedding_model.parameters():
+        #     if len(param.size()) > 1:
+        #         nn.init.xavier_uniform_(param.data)
+        #     else:
+        #         nn.init.zeros_(param.data)
+
+    def forward(self, ref, hyp_a, hyp_b):
+        ref_embedding = torch.tensor(self.embedding_model.encode(ref))
+        hyp_a_embedding = torch.tensor(self.embedding_model.encode(hyp_a))
+        hyp_b_embedding = torch.tensor(self.embedding_model.encode(hyp_b))
+
+        concatenated = torch.cat([ref_embedding, hyp_a_embedding, hyp_b_embedding], dim=1)
+        output = self.fc(concatenated)
+
+        return output
+
+
 if __name__ == '__main__':
     print("Reading dataset...")
     dataset = read_dataset("hats.txt")
@@ -88,8 +120,12 @@ if __name__ == '__main__':
     check_weight = True 
     
     if check_weight:
-        model1 = SentenceTransformer('dangvantuan/sentence-camembert-large')
-        model1.load_state_dict(torch.load('models/fine_tuned_sentence_transformer.pth'))
+        siamese_network = SiameseNetwork(embedding_model)
+        siamese_network.load_state_dict(torch.load('models/siamese_network.pth'))
+        model1 = siamese_network.embedding_model
+
+        # model1 = SentenceTransformer('dangvantuan/sentence-camembert-large')
+        # model1.load_state_dict(torch.load('models/fine_tuned_sentence_transformer.pth'))
         model2 = SentenceTransformer('dangvantuan/sentence-camembert-large')
         # Check if models have the same weights
         are_models_equal = all(p1.equal(p2) for p1, p2 in zip(model1.parameters(), model2.parameters()))
