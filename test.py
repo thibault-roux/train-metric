@@ -41,8 +41,8 @@ def evaluator(metric, dataset, memory=0, certitude=0.7, verbose=True):
     if verbose:
         bar = progressbar.ProgressBar(max_value=len(dataset))
     for i in range(len(dataset)):
-        if i > 100:
-            break
+        # if i > 100:
+        #     break
         if verbose:
             bar.update(i)
         nbrA = dataset[i]["nbrA"]
@@ -85,10 +85,23 @@ if __name__ == '__main__':
     print("Importing...")    
     
     # SD_sentence_camembert_large
-    model = SentenceTransformer('dangvantuan/sentence-camembert-large')
-    model.load_state_dict(torch.load('models/fine_tuned_sentence_transformer.pth'))
+    model1 = SentenceTransformer('dangvantuan/sentence-camembert-large')
+    # model.load_state_dict(torch.load('models/fine_tuned_sentence_transformer.pth'))
     # model = model.eval()
+    
+    model1.load_state_dict(torch.load('models/fine_tuned_sentence_transformer.pth'))
+    model2 = SentenceTransformer('dangvantuan/sentence-camembert-large')
+    # Check if models have the same weights
+    are_models_equal = all(p1.equal(p2) for p1, p2 in zip(model1.parameters(), model2.parameters()))
+    if are_models_equal:
+        print("Model weights are the same.")
+    else:
+        print("Model weights are different.")
+
+
+    exit(-1)
     memory=model
+
 
     print("Evaluating...")
     x_score = evaluator(semdist, dataset, memory=memory, certitude=cert_X)
