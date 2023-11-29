@@ -3,6 +3,7 @@ import numpy
 import torch
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
+from transformers import AutoTokenizer, AutoModel
 
 
 def read_dataset(dataname):
@@ -30,6 +31,32 @@ def semdist(ref, hyp, memory):
     return (1-score)*100 # lower is better
 
 
+# ----------------- second method -----------------
+
+def mean_pooling(model_output, attention_mask):
+    token_embeddings = model_output[0] #First element of model_output contains all token embeddings
+    input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+    sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, 1)
+    sum_mask = torch.clamp(input_mask_expanded.sum(1), min=1e-9)
+    return sum_embeddings / sum_mask
+
+def inference_semdist2(text, memory):
+    tokenizer, model = memory
+    encoded_input = tokenizer(text, padding=True, truncation=True, max_length=128, return_tensors='pt')
+    with torch.no_grad():
+        model_output = model(**encoded_input)
+    sentence_embeddings = mean_pooling(model_output, encoded_input['attention_mask'])
+    return sentence_embeddings
+
+def semdist2(ref, hyp, memory):
+    ref_projection = inference_semdist2(ref, memory).reshape(1, -1)
+    hyp_projection = inference_semdist2(hyp, memory).reshape(1, -1)
+    score = cosine_similarity(ref_projection, hyp_projection)[0][0]
+    return (1-score)*100 # lower is better
+
+
+# ----------------- Evaluator -----------------
+
 def evaluator(metric, dataset, memory=0, certitude=0.7, verbose=True):
     print("certitude: ", certitude*100)
     ignored = 0
@@ -41,8 +68,8 @@ def evaluator(metric, dataset, memory=0, certitude=0.7, verbose=True):
     if verbose:
         bar = progressbar.ProgressBar(max_value=len(dataset))
     for i in range(len(dataset)):
-        # if i > 100:
-        #     break
+        if i > 300:
+            break
         if verbose:
             bar.update(i)
         nbrA = dataset[i]["nbrA"]
@@ -77,29 +104,47 @@ def write(namefile, x, y):
 
 
 
+# ----------------- Siamese Network -----------------
+
 import torch.nn as nn
 
 
 # Define the Siamese network
 class SiameseNetwork(nn.Module):
-    def __init__(self, embedding_model):
+    def __init__(self, model_name):
         super(SiameseNetwork, self).__init__()
-        self.embedding_model = embedding_model
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.model = AutoModel.from_pretrained(model_name)
+        transformer_output_dim = self.model.config.hidden_size
+
         self.fc = nn.Sequential(
-            nn.Linear(3 * embedding_model.get_sentence_embedding_dimension(), 128),
+            nn.Linear(3 * transformer_output_dim, 128),
             nn.ReLU(),
             nn.Linear(128, 1),
         )
-        # for param in self.embedding_model.parameters():
-        #     if len(param.size()) > 1:
-        #         nn.init.xavier_uniform_(param.data)
-        #     else:
-        #         nn.init.zeros_(param.data)
+
+    def mean_pooling(self, model_output, attention_mask):
+        token_embeddings = model_output.last_hidden_state  # Last layer hidden states
+        input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+        return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
 
     def forward(self, ref, hyp_a, hyp_b):
-        ref_embedding = torch.tensor(self.embedding_model.encode(ref))
-        hyp_a_embedding = torch.tensor(self.embedding_model.encode(hyp_a))
-        hyp_b_embedding = torch.tensor(self.embedding_model.encode(hyp_b))
+        # Tokenize sentences
+        encoded_input_ref = self.tokenizer(ref, padding=True, truncation=True, return_tensors='pt')
+        encoded_input_hyp_a = self.tokenizer(hyp_a, padding=True, truncation=True, return_tensors='pt')
+        encoded_input_hyp_b = self.tokenizer(hyp_b, padding=True, truncation=True, return_tensors='pt')
+        
+        # Compute token embeddings
+        with torch.no_grad():
+            model_output_ref = self.model(**encoded_input_ref)
+            model_output_hyp_a = self.model(**encoded_input_hyp_a)
+            model_output_hyp_b = self.model(**encoded_input_hyp_b)
+
+        # Perform pooling
+        ref_embedding = self.mean_pooling(model_output_ref, encoded_input_ref['attention_mask'])
+        hyp_a_embedding = self.mean_pooling(model_output_hyp_a, encoded_input_hyp_a['attention_mask'])
+        hyp_b_embedding = self.mean_pooling(model_output_hyp_b, encoded_input_hyp_b['attention_mask'])
+
 
         concatenated = torch.cat([ref_embedding, hyp_a_embedding, hyp_b_embedding], dim=1)
         output = self.fc(concatenated)
@@ -117,7 +162,7 @@ if __name__ == '__main__':
     print("Importing...")
 
 
-    check_weight = True 
+    check_weight = False 
     
     if check_weight:
         siamese_network = SiameseNetwork(embedding_model)
@@ -136,13 +181,23 @@ if __name__ == '__main__':
         exit(0)
 
 
-    # SD_sentence_camembert_large
-    model = SentenceTransformer('dangvantuan/sentence-camembert-large')
-    model.load_state_dict(torch.load('models/fine_tuned_sentence_transformer.pth'))
+    tokenizer = AutoTokenizer.from_pretrained('dangvantuan/sentence-camembert-large')
+    model1 = AutoModel.from_pretrained('dangvantuan/sentence-camembert-large')
+    memory = (tokenizer, model1)
+
+    model2 = SentenceTransformer('dangvantuan/sentence-camembert-large')
     # model = model.eval()
-    memory=model
+    # memory=model2
+
+    text = "Voici un premier exemple"
+    inf1 = model2.encode(text).reshape(1, -1)
+    inf2 = inference_semdist2(text, memory)
+    print(inf1)
+    print(inf2)
+    
+    exit(0)
 
     print("Evaluating...")
-    x_score = evaluator(semdist, dataset, memory=memory, certitude=cert_X)
+    x_score = evaluator(semdist2, dataset, memory=memory, certitude=cert_X)
     
     print(x_score)
