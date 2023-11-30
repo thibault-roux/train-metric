@@ -105,6 +105,11 @@ class HypothesisClassifier(nn.Module):
         logits = self.fc(concatenated)
         return logits
 
+    def save_embedding(self, path):
+        print("Saving in ", path)
+        self.model.save_pretrained(path)
+        print("Saved")
+
 camembert_model = CamembertModel.from_pretrained("camembert-base", num_labels=2)
 hypothesis_classifier = HypothesisClassifier(camembert_model)
 
@@ -119,7 +124,7 @@ loss_fn = nn.CrossEntropyLoss()
 dataloader = DataLoader(dataset, batch_size=2, shuffle=True)
 
 # Training loop
-num_epochs = 3
+num_epochs = 1
 for epoch in range(num_epochs):
     print(epoch)
     for batch in dataloader:
@@ -135,22 +140,24 @@ for epoch in range(num_epochs):
         logits = hypothesis_classifier(input_ids1, attention_mask1, input_ids2, attention_mask2, input_ids3, attention_mask3)
         loss = loss_fn(logits, labels)
         loss.backward()
-        # optimizer.step()
+        optimizer.step()
 
-        for name, param in hypothesis_classifier.named_parameters():
-            if param.requires_grad:
-                old = param.data.clone()
-                optimizer.step() # not supposed to be there
+        break
+
+        # for name, param in hypothesis_classifier.named_parameters():
+        #     if param.requires_grad:
+        #         old = param.data.clone()
+        #         optimizer.step() # not supposed to be there
                 
-                # check if the weights have changed
-                if not torch.equal(old.data, param.data):
-                    print(f'Gradient: {param.grad}')
-                    print(f'Before: {old.data}')
-                    print("Weights have changed")
-                    print(f'After: {param.data}')
-                    print(name)
-                    print("---")
-                    input()
+        #         # check if the weights have changed
+        #         if not torch.equal(old.data, param.data):
+        #             print(f'Gradient: {param.grad}')
+        #             print(f'Before: {old.data}')
+        #             print("Weights have changed")
+        #             print(f'After: {param.data}')
+        #             print(name)
+        #             print("---")
+        #             input()
 
-# Save the fine-tuned model
-# hypothesis_classifier.save_pretrained("emotion_model")
+# save the model
+hypothesis_classifier.save_embedding("models/hypothesis_classifier")
