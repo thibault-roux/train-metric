@@ -27,31 +27,39 @@ def read_hats():
 
 class HATSDataset(Dataset):
     def __init__(self, dataset, tokenizer, max_length):
-        self.sentences1 = []
-        self.sentences2 = []
+        self.refs = []
+        self.hypsA = []
+        self.hypsB = []
         self.labels = []
         for item in dataset:
-            self.sentences1.append(item['ref'])
-            self.sentences2.append(item['hypA'])
-            # self.sentences3.append(item['hypB'])
+            self.refs.append(item['ref'])
+            self.hypsA.append(item['hypA'])
+            self.hypsB.append(item['hypB'])
             self.labels.append(item['annotation'])
 
         self.tokenizer = tokenizer
         self.max_length = max_length
 
     def __len__(self):
-        return max(len(self.sentences1), len(self.sentences2))
+        return len(self.refs)
 
     def __getitem__(self, idx):
         encoding1 = self.tokenizer(
-            self.sentences1[idx],
+            self.refs[idx],
             padding='max_length',  # Pad to the maximum length in the batch
             truncation=True,
             max_length=self.max_length,
             return_tensors="pt"
         )
         encoding2 = self.tokenizer(
-            self.sentences2[idx],
+            self.hypsA[idx],
+            padding='max_length',  # Pad to the maximum length in the batch
+            truncation=True,
+            max_length=self.max_length,
+            return_tensors="pt"
+        )
+        encoding3 = self.tokenizer(
+            self.hypsB[idx],
             padding='max_length',  # Pad to the maximum length in the batch
             truncation=True,
             max_length=self.max_length,
@@ -62,6 +70,8 @@ class HATSDataset(Dataset):
             "attention_mask1": encoding1["attention_mask"].flatten(),
             "input_ids2": encoding2["input_ids"].flatten(),
             "attention_mask2": encoding2["attention_mask"].flatten(),
+            "input_ids3": encoding3["input_ids"].flatten(),
+            "attention_mask3": encoding3["attention_mask"].flatten(),
             "label": torch.tensor(self.labels[idx], dtype=torch.long)
         })
 
@@ -78,29 +88,31 @@ class HypothesisClassifier(nn.Module):
         self.camembert = camembert_model
         # self.linear = nn.Linear(in_features=self.camembert.config.hidden_size, out_features=2)
         self.fc = nn.Sequential(
-            nn.Linear(2 * self.camembert.config.hidden_size, 128),
+            nn.Linear(3 * self.camembert.config.hidden_size, 128),
             nn.ReLU(),
             nn.Linear(128, 2),
         )
 
-    def forward(self, input_ids1, attention_mask1, input_ids2, attention_mask2):
+    def forward(self, input_ids1, attention_mask1, input_ids2, attention_mask2, input_ids3, attention_mask3):
         outputs1 = self.camembert(input_ids=input_ids1, attention_mask=attention_mask1)
         outputs2 = self.camembert(input_ids=input_ids2, attention_mask=attention_mask2)
+        outputs3 = self.camembert(input_ids=input_ids3, attention_mask=attention_mask3)
         pooled_output1 = outputs1.pooler_output
         pooled_output2 = outputs1.pooler_output
+        pooled_output3 = outputs1.pooler_output
         # logits = self.linear(pooled_output)
-        concatenated = torch.cat([pooled_output1, pooled_output2], dim=1)
+        concatenated = torch.cat([pooled_output1, pooled_output2, pooled_output3], dim=1)
         logits = self.fc(concatenated)
         return logits
 
 camembert_model = CamembertModel.from_pretrained("camembert-base", num_labels=2)
-emotion_classifier = HypothesisClassifier(camembert_model)
+hypothesis_classifier = HypothesisClassifier(camembert_model)
 
 
 
 
 # Define your training parameters
-optimizer = torch.optim.Adam(emotion_classifier.parameters(), lr=1)
+optimizer = torch.optim.Adam(hypothesis_classifier.parameters(), lr=1)
 loss_fn = nn.CrossEntropyLoss()
 
 # DataLoader for training
@@ -115,15 +127,17 @@ for epoch in range(num_epochs):
         attention_mask1 = batch["attention_mask1"]
         input_ids2 = batch["input_ids2"]
         attention_mask2 = batch["attention_mask2"]
+        input_ids3 = batch["input_ids3"]
+        attention_mask3 = batch["attention_mask3"]
         labels = batch["label"]
 
         optimizer.zero_grad()
-        logits = emotion_classifier(input_ids1, attention_mask1, input_ids2, attention_mask2)
+        logits = hypothesis_classifier(input_ids1, attention_mask1, input_ids2, attention_mask2, input_ids3, attention_mask3)
         loss = loss_fn(logits, labels)
         loss.backward()
         # optimizer.step()
 
-        for name, param in emotion_classifier.named_parameters():
+        for name, param in hypothesis_classifier.named_parameters():
             if param.requires_grad:
                 old = param.data.clone()
                 optimizer.step() # not supposed to be there
@@ -139,4 +153,4 @@ for epoch in range(num_epochs):
                     input()
 
 # Save the fine-tuned model
-# emotion_classifier.save_pretrained("emotion_model")
+# hypothesis_classifier.save_pretrained("emotion_model")
