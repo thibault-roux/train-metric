@@ -6,7 +6,9 @@ from transformers import CamembertModel
 from torch.utils.data import DataLoader
 
 
-tokenizer = CamembertTokenizer.from_pretrained("camembert-base")
+# myenv2
+
+tokenizer = CamembertTokenizer.from_pretrained('dangvantuan/sentence-camembert-large')
 
 
 def read_hats():
@@ -76,7 +78,7 @@ class HATSDataset(Dataset):
         })
 
 # set dataset
-max_length = 10
+max_length = 30
 hats = read_hats()
 dataset = HATSDataset(hats, tokenizer, max_length)
 
@@ -110,21 +112,21 @@ class HypothesisClassifier(nn.Module):
         self.camembert.save_pretrained(path)
         print("Saved")
 
-camembert_model = CamembertModel.from_pretrained("camembert-base", num_labels=2)
+camembert_model = CamembertModel.from_pretrained('dangvantuan/sentence-camembert-large', num_labels=2)
 hypothesis_classifier = HypothesisClassifier(camembert_model)
 
 
 
 
 # Define your training parameters
-optimizer = torch.optim.Adam(hypothesis_classifier.parameters(), lr=1)
+optimizer = torch.optim.Adam(hypothesis_classifier.parameters(), lr=0.001)
 loss_fn = nn.CrossEntropyLoss()
 
 # DataLoader for training
-dataloader = DataLoader(dataset, batch_size=2, shuffle=True)
+dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
 
 # Training loop
-num_epochs = 1
+num_epochs = 10
 for epoch in range(num_epochs):
     print(epoch)
     for batch in dataloader:
