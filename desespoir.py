@@ -107,7 +107,7 @@ class HypothesisClassifier(nn.Module):
 
     def save_embedding(self, path):
         print("Saving in ", path)
-        self.model.save_pretrained(path)
+        self.camembert.save_pretrained(path)
         print("Saved")
 
 camembert_model = CamembertModel.from_pretrained("camembert-base", num_labels=2)

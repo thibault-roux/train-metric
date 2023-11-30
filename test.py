@@ -157,7 +157,7 @@ class SiameseNetwork(nn.Module):
 
 if __name__ == '__main__':
     print("Reading dataset...")
-    dataset = read_dataset("hats.txt")
+    # dataset = read_dataset("hats.txt")
 
     cert_X = 1
 
@@ -165,50 +165,31 @@ if __name__ == '__main__':
     print("Importing...")
 
 
-    check_weight = False 
+    check_weight = True
     
     if check_weight:
-        siamese_network = SiameseNetwork(embedding_model)
-        siamese_network.load_state_dict(torch.load('models/siamese_network.pth'))
-        model1 = siamese_network.embedding_model
 
-        # model1 = SentenceTransformer('dangvantuan/sentence-camembert-large')
-        # model1.load_state_dict(torch.load('models/fine_tuned_sentence_transformer.pth'))
-        model2 = SentenceTransformer('dangvantuan/sentence-camembert-large')
-        # Check if models have the same weights
-        are_models_equal = all(p1.equal(p2) for p1, p2 in zip(model1.parameters(), model2.parameters()))
-        if are_models_equal:
-            print("Model weights are the same.")
-        else:
-            print("Model weights are different.")
+        tokenizer = AutoTokenizer.from_pretrained('dangvantuan/sentence-camembert-large')
+        model1 = AutoModel.from_pretrained('./models/hypothesis_classifier')
+        memory1 = (tokenizer, model1)
+
+        tokenizer = AutoTokenizer.from_pretrained('dangvantuan/sentence-camembert-large')
+        model2 = AutoModel.from_pretrained('dangvantuan/sentence-camembert-large')
+        memory2 = (tokenizer, model2)
+
+        model3 = SentenceTransformer('dangvantuan/sentence-camembert-large')
+        # model = model.eval()
+        # memory=model2
+
+        text = "Voici un premier exemple"
+        inf1 = inference_semdist2(text, memory1) # trained
+        inf2 = inference_semdist2(text, memory2) # same as model3
+        inf3 = model3.encode(text).reshape(1, -1) # base sentence transformer
+        print(inf1)
+        print(inf2)
+        print(inf3)
+        
         exit(0)
-
-
-    # siamese_network = SiameseNetwork('dangvantuan/sentence-camembert-large')
-    # siamese_network.load_state_dict(torch.load('models/siamese_network.pth'))
-    # siamese_network.save_embedding('models/automodel.pth')
-
-    tokenizer = AutoTokenizer.from_pretrained('dangvantuan/sentence-camembert-large')
-    model1 = AutoModel.from_pretrained('./models/automodel.pth')
-    memory1 = (tokenizer, model1)
-
-    tokenizer = AutoTokenizer.from_pretrained('dangvantuan/sentence-camembert-large')
-    model2 = AutoModel.from_pretrained('dangvantuan/sentence-camembert-large')
-    memory2 = (tokenizer, model2)
-
-    model3 = SentenceTransformer('dangvantuan/sentence-camembert-large')
-    # model = model.eval()
-    # memory=model2
-
-    text = "Voici un premier exemple"
-    inf1 = inference_semdist2(text, memory1) # trained
-    inf2 = inference_semdist2(text, memory2) # same as model3
-    inf3 = model3.encode(text).reshape(1, -1) # base sentence transformer
-    print(inf1)
-    print(inf2)
-    print(inf3)
-    
-    exit(0)
 
     print("Evaluating...")
     x_score = evaluator(semdist2, dataset, memory=memory, certitude=cert_X)
