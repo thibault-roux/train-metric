@@ -6,7 +6,6 @@ from transformers import CamembertModel
 from torch.utils.data import DataLoader
 
 
-tokenizer = CamembertTokenizer.from_pretrained("dangvantuan/sentence-camembert-large")
 
 sentences1 = ["tu es super", "tu es méchant", "t'es cool", "t'es top", "t'es nul", "t'es bien"]
 sentences2 = ["on inverse", "on inverse pas", "on inverse pas", "on inverse pas", "on inverse", "on inverse pas"]
@@ -26,12 +25,14 @@ class EmotionDataset(Dataset):
         return max(len(self.sentences1), len(self.sentences2))
 
     def __getitem__(self, idx):
-        return sentences1[idx], sentences2[idx], labels[idx]
+        label = torch.tensor(self.labels[idx], dtype=torch.long)
+        # return (sentences1[idx], sentences2[idx], label)
+        return ({"sentence1": sentences1[idx], "sentence2": sentences2[idx], "label": label})
         # labels[idx] == 1
         # torch.tensor(self.labels[idx], dtype=torch.long) == tensor(1)
 
 
-dataset = EmotionDataset(sentences1, sentences2, labels, tokenizer)
+dataset = EmotionDataset(sentences1, sentences2, labels)
 
 
 
@@ -68,17 +69,23 @@ class EmotionClassifier(nn.Module):
         inputs_ids2 = encoding2["input_ids"].flatten()
         attention_mask2 = encoding2["attention_mask"].flatten()
 
-        outputs1 = self.camembert(input_ids=input_ids1, attention_mask=attention_mask1)
-        outputs2 = self.camembert(input_ids=input_ids2, attention_mask=attention_mask2)
-        pooled_output1 = outputs1.pooler_output
-        pooled_output2 = outputs1.pooler_output
+        print("inputs_ids1.shape", inputs_ids1.shape)
+        print("inputs_ids1", inputs_ids1)
+        print("attention_mask1", attention_mask1)
+        exit()
+
+        outputs1 = self.camembert(input_ids=inputs_ids1, attention_mask=attention_mask1)
+        outputs2 = self.camembert(input_ids=inputs_ids2, attention_mask=attention_mask2)
+        pooled_output1 = pooled_output1.view(pooled_output1.size(0), -1)
+        pooled_output2 = pooled_output2.view(pooled_output2.size(0), -1)
         # logits = self.linear(pooled_output)
         concatenated = torch.cat([pooled_output1, pooled_output2], dim=1)
         logits = self.fc(concatenated)
         return logits
 
 camembert_model = CamembertModel.from_pretrained("dangvantuan/sentence-camembert-large", num_labels=2)
-emotion_classifier = EmotionClassifier(camembert_model)
+tokenizer = CamembertTokenizer.from_pretrained("dangvantuan/sentence-camembert-large")
+emotion_classifier = EmotionClassifier(camembert_model, tokenizer)
 
 
 
@@ -95,7 +102,15 @@ num_epochs = 3
 for epoch in range(num_epochs):
     print(epoch)
     for batch in dataloader:
-        ref, hyp, labels = batch
+        print(batch)
+        ref = [batch["sentence1"]]
+        hyp = [batch["sentence2"]]
+        labels = batch["label"]
+
+        print()
+        print("ref:", ref)
+        print("labels:", labels)
+        exit()
 
         optimizer.zero_grad()
         logits = emotion_classifier(ref, hyp)
