@@ -13,7 +13,8 @@ sentences2 = ["on inverse", "on inverse pas", "on inverse pas", "on inverse pas"
 labels = [0, 0, 1, 1, 1, 1]
 
 # Tokenize and pad the sentences
-inputs = tokenizer(sentences, padding=True, truncation=True, return_tensors="pt")
+# inputs1 = tokenizer(sentences1, padding=True, truncation=True, return_tensors="pt")
+# inputs2 = tokenizer(sentences2, padding=True, truncation=True, return_tensors="pt")
 
 class EmotionDataset(Dataset):
     def __init__(self, sentences1, sentences2, labels, tokenizer, max_length):
@@ -24,7 +25,7 @@ class EmotionDataset(Dataset):
         self.max_length = max_length
 
     def __len__(self):
-        return len(self.sentences)
+        return max(len(self.sentences1), len(self.sentences2))
 
     def __getitem__(self, idx):
         encoding1 = self.tokenizer(
@@ -42,8 +43,8 @@ class EmotionDataset(Dataset):
             return_tensors="pt"
         )
         return ({
-            "input_ids": encoding["input_ids"].flatten(),
-            "attention_mask": encoding["attention_mask"].flatten(),
+            "input_ids": encoding1["input_ids"].flatten(),
+            "attention_mask": encoding1["attention_mask"].flatten(),
             "label": torch.tensor(self.labels[idx], dtype=torch.long)
         },
         {
@@ -55,7 +56,7 @@ class EmotionDataset(Dataset):
 # Set your desired maximum sequence length
 max_length = 10
 
-dataset = EmotionDataset(sentences, labels, tokenizer, max_length)
+dataset = EmotionDataset(sentences1, sentences2, labels, tokenizer, max_length)
 
 
 
@@ -67,14 +68,14 @@ class EmotionClassifier(nn.Module):
         self.fc = nn.Sequential(
             nn.Linear(2 * self.camembert.config.hidden_size, 128),
             nn.ReLU(),
-            nn.Linear(128, 1),
+            nn.Linear(128, 2),
         )
 
     def forward(self, input_ids1, attention_mask1, input_ids2, attention_mask2):
         outputs1 = self.camembert(input_ids=input_ids1, attention_mask=attention_mask1)
         outputs2 = self.camembert(input_ids=input_ids2, attention_mask=attention_mask2)
         pooled_output1 = outputs1.pooler_output
-        pooled_output1 = outputs1.pooler_output
+        pooled_output2 = outputs1.pooler_output
         # logits = self.linear(pooled_output)
         concatenated = torch.cat([pooled_output1, pooled_output2], dim=1)
         logits = self.fc(concatenated)
