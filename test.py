@@ -151,6 +151,9 @@ class SiameseNetwork(nn.Module):
 
         return output
 
+    def save_embedding(self, path):
+        self.model.save_pretrained(path)
+
 
 if __name__ == '__main__':
     print("Reading dataset...")
@@ -181,19 +184,29 @@ if __name__ == '__main__':
         exit(0)
 
 
-    tokenizer = AutoTokenizer.from_pretrained('dangvantuan/sentence-camembert-large')
-    model1 = AutoModel.from_pretrained('dangvantuan/sentence-camembert-large')
-    memory = (tokenizer, model1)
+    # siamese_network = SiameseNetwork('dangvantuan/sentence-camembert-large')
+    # siamese_network.load_state_dict(torch.load('models/siamese_network.pth'))
+    # siamese_network.save_embedding('models/automodel.pth')
 
-    model2 = SentenceTransformer('dangvantuan/sentence-camembert-large')
+    tokenizer = AutoTokenizer.from_pretrained('dangvantuan/sentence-camembert-large')
+    model1 = AutoModel.from_pretrained('./models/automodel.pth')
+    memory1 = (tokenizer, model1)
+
+    tokenizer = AutoTokenizer.from_pretrained('dangvantuan/sentence-camembert-large')
+    model2 = AutoModel.from_pretrained('dangvantuan/sentence-camembert-large')
+    memory2 = (tokenizer, model2)
+
+    model3 = SentenceTransformer('dangvantuan/sentence-camembert-large')
     # model = model.eval()
     # memory=model2
 
     text = "Voici un premier exemple"
-    inf1 = model2.encode(text).reshape(1, -1)
-    inf2 = inference_semdist2(text, memory)
+    inf1 = inference_semdist2(text, memory1) # trained
+    inf2 = inference_semdist2(text, memory2) # same as model3
+    inf3 = model3.encode(text).reshape(1, -1) # base sentence transformer
     print(inf1)
     print(inf2)
+    print(inf3)
     
     exit(0)
 
