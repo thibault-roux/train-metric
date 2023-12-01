@@ -144,8 +144,6 @@ for epoch in range(num_epochs):
         loss.backward()
         optimizer.step()
 
-        break
-
         # for name, param in hypothesis_classifier.named_parameters():
         #     if param.requires_grad:
         #         old = param.data.clone()

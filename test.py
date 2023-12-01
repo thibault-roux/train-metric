@@ -68,8 +68,6 @@ def evaluator(metric, dataset, memory=0, certitude=0.7, verbose=True):
     if verbose:
         bar = progressbar.ProgressBar(max_value=len(dataset))
     for i in range(len(dataset)):
-        if i > 300:
-            break
         if verbose:
             bar.update(i)
         nbrA = dataset[i]["nbrA"]
@@ -157,7 +155,7 @@ class SiameseNetwork(nn.Module):
 
 if __name__ == '__main__':
     print("Reading dataset...")
-    # dataset = read_dataset("hats.txt")
+    dataset = read_dataset("hats.txt")
 
     cert_X = 1
 
