@@ -165,7 +165,7 @@ if __name__ == '__main__':
     print("Importing...")
 
 
-    check_weight = True
+    check_weight = False
     
     if check_weight:
 
@@ -190,6 +190,10 @@ if __name__ == '__main__':
         print(inf3)
         
         exit(0)
+
+    tokenizer = AutoTokenizer.from_pretrained('dangvantuan/sentence-camembert-large')
+    model = AutoModel.from_pretrained('./models/hypothesis_classifier')
+    memory = (tokenizer, model)
 
     print("Evaluating...")
     x_score = evaluator(semdist2, dataset, memory=memory, certitude=cert_X)
