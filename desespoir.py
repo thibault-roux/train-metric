@@ -24,11 +24,11 @@ def read_hats():
             dictionary["hypB"] = line[2]
             annotation = float(line[3])
             if annotation == 0.0:
-                dictionary["annotation"] = [1, 0]
+                dictionary["annotation"] = [1.0, 0.0]
             elif annotation == 1.0:
-                dictionary["annotation"] = [0, 1]
+                dictionary["annotation"] = [0.0, 1.0]
             elif annotation == 0.5:
-                dictionary["annotation"] = [0, 0] # it is also possible to skip these cases
+                dictionary["annotation"] = [0.0, 0.0] # it is also possible to skip these cases
             else:
                 raise Exception("annotation is not 0.0, 0.5 or 1.0")
             # dictionary["annotation"] = float(line[3])
@@ -83,7 +83,7 @@ class HATSDataset(Dataset):
             "attention_mask2": encoding2["attention_mask"].flatten(),
             "input_ids3": encoding3["input_ids"].flatten(),
             "attention_mask3": encoding3["attention_mask"].flatten(),
-            "label": torch.tensor(self.labels[idx], dtype=torch.long)
+            "label": torch.tensor(self.labels[idx], dtype=torch.float)
         })
 
 # set dataset
