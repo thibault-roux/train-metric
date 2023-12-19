@@ -24,11 +24,11 @@ def read_hats():
             dictionary["hypB"] = line[2]
             annotation = float(line[3])
             if annotation == 0.0:
-                dictionary["annotation"] = torch.Tensor([1, 0])
+                dictionary["annotation"] = torch.FloatTensor([1, 0])
             elif annotation == 1.0:
-                dictionary["annotation"] = torch.Tensor([0, 1])
+                dictionary["annotation"] = torch.FloatTensor([0, 1])
             elif annotation == 0.5:
-                dictionary["annotation"] = torch.Tensor([0, 0]) # it is also possible to skip these cases
+                dictionary["annotation"] = torch.FloatTensor([0, 0]) # it is also possible to skip these cases
             else:
                 raise Exception("annotation is not 0.0, 0.5 or 1.0")
             # dictionary["annotation"] = float(line[3])
@@ -114,8 +114,6 @@ class HypothesisClassifier(nn.Module):
         # logits = self.linear(pooled_output)
         concatenated = torch.cat([pooled_output1, pooled_output2, pooled_output3], dim=1)
         logits = self.fc(concatenated)
-        print("logits:", logits)
-        input()
         return logits
 
     def save_embedding(self, path):
@@ -136,6 +134,8 @@ loss_fn = nn.CrossEntropyLoss()
 # DataLoader for training
 dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
 
+losses = []
+
 # Training loop
 num_epochs = 10
 for epoch in range(num_epochs):
@@ -148,12 +148,11 @@ for epoch in range(num_epochs):
         input_ids3 = batch["input_ids3"]
         attention_mask3 = batch["attention_mask3"]
         labels = batch["label"]
-        print("labels:", labels)
 
         optimizer.zero_grad()
         logits = hypothesis_classifier(input_ids1, attention_mask1, input_ids2, attention_mask2, input_ids3, attention_mask3)
-        print("logits:", logits)
         loss = loss_fn(logits, labels)
+        losses.append(loss)
         loss.backward()
         optimizer.step()
 
@@ -174,3 +173,8 @@ for epoch in range(num_epochs):
 
 # save the model
 hypothesis_classifier.save_embedding("models/hypothesis_classifier")
+
+# save the losses
+with open("models/losses.txt", "w") as file:
+    for loss in losses:
+        file.write(str(loss.item()) + "\n")
