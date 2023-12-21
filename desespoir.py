@@ -135,7 +135,7 @@ loss_fn = nn.CrossEntropyLoss()
 print("Loading dataloader...")
 
 # DataLoader for training
-dataloader = DataLoader(dataset, batch_size=1, shuffle=True) # batch_size=32
+dataloader = DataLoader(dataset, batch_size=32, shuffle=True) # batch_size=32
 
 losses = []
 
@@ -149,8 +149,8 @@ for epoch in range(num_epochs):
     for batch in dataloader:
         print(batch_id)
         batch_id += 1
-        if batch_id < 1487: # 577 1357 1487
-            continue
+        # if batch_id < 1487: # 577 1357 1487
+        #     continue
         input_ids1 = batch["input_ids1"]
         attention_mask1 = batch["attention_mask1"]
         input_ids2 = batch["input_ids2"]
@@ -162,7 +162,8 @@ for epoch in range(num_epochs):
         optimizer.zero_grad()
         logits = hypothesis_classifier(input_ids1, attention_mask1, input_ids2, attention_mask2, input_ids3, attention_mask3)
         loss = loss_fn(logits, labels)
-        losses.append(loss)
+        l = loss.item()
+        losses.append(l)
         loss.backward()
         optimizer.step()
 
@@ -186,5 +187,5 @@ hypothesis_classifier.save_embedding("models/hypothesis_classifier")
 
 # save the losses
 with open("models/losses.txt", "w") as file:
-    for loss in losses:
-        file.write(str(loss.item()) + "\n")
+    for l in losses:
+        file.write(str(l) + "\n")
