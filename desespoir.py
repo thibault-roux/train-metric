@@ -131,16 +131,26 @@ hypothesis_classifier = HypothesisClassifier(camembert_model)
 optimizer = torch.optim.Adam(hypothesis_classifier.parameters(), lr=0.001)
 loss_fn = nn.CrossEntropyLoss()
 
+
+print("Loading dataloader...")
+
 # DataLoader for training
-dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
+dataloader = DataLoader(dataset, batch_size=1, shuffle=True) # batch_size=32
 
 losses = []
+
+print("dataloader loaded")
 
 # Training loop
 num_epochs = 10
 for epoch in range(num_epochs):
     print(epoch)
+    batch_id = 0
     for batch in dataloader:
+        print(batch_id)
+        batch_id += 1
+        if batch_id < 1487: # 577 1357 1487
+            continue
         input_ids1 = batch["input_ids1"]
         attention_mask1 = batch["attention_mask1"]
         input_ids2 = batch["input_ids2"]
