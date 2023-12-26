@@ -176,6 +176,23 @@ for epoch in range(num_epochs):
         #             print(name)
         #             print("---")
         #             input()
+    
+    # evaluate after each epoch
+    evaluation = 0
+    for batch in dataloader:
+        input_ids1 = batch["input_ids1"]
+        attention_mask1 = batch["attention_mask1"]
+        input_ids2 = batch["input_ids2"]
+        attention_mask2 = batch["attention_mask2"]
+        input_ids3 = batch["input_ids3"]
+        attention_mask3 = batch["attention_mask3"]
+        labels = batch["label"]
+
+        logits = hypothesis_classifier(input_ids1, attention_mask1, input_ids2, attention_mask2, input_ids3, attention_mask3)
+        predictions = torch.argmax(logits, dim=1)
+        evaluation += torch.sum(predictions == labels).item() / len(labels)
+    evaluation /= len(dataloader)
+    print("Evaluation:", evaluation)
 
 # save the model
 hypothesis_classifier.save_embedding("models/hypothesis_classifier")
