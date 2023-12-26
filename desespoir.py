@@ -194,8 +194,11 @@ for epoch in range(num_epochs):
     evaluation /= len(dataloader)
     print("Evaluation:", evaluation)
 
-# save the model
+# save the embeddings model
 hypothesis_classifier.save_embedding("models/hypothesis_classifier")
+
+# save the model
+torch.save(hypothesis_classifier.state_dict(), "models/hypothesis_classifier_full.pt")
 
 # save the losses
 with open("models/losses.txt", "w") as file:
