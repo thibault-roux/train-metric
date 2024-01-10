@@ -25,14 +25,15 @@ def read_hats():
             dictionary["hypB"] = line[2]
             annotation = float(line[3])
             if annotation == 0.0:
-                dictionary["annotation"] = [1.0, 0.0]
+                dictionary["annotation"] = 0 # [1.0, 0.0]
             elif annotation == 1.0:
-                dictionary["annotation"] = [0.0, 1.0]
+                dictionary["annotation"] = 1 # [0.0, 1.0]
             elif annotation == 0.5:
-                dictionary["annotation"] = [0.0, 0.0] # it is also possible to skip these cases
+                # dictionary["annotation"] = [0.0, 0.0] # it is also possible to skip these cases
+                continue
             else:
                 raise Exception("annotation is not 0.0, 0.5 or 1.0")
-            # dictionary["annotation"] = float(line[3])
+            # dictionary["annotation"] = [float(line[3])]
             dataset.append(dictionary)
     return dataset
 
