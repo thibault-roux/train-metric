@@ -25,12 +25,12 @@ def read_hats():
             dictionary["hypB"] = line[2]
             annotation = float(line[3])
             if annotation == 0.0:
-                dictionary["annotation"] = 0 # [1.0, 0.0]
+                dictionary["annotation"] = [0.0] # [1.0, 0.0]
             elif annotation == 1.0:
-                dictionary["annotation"] = 1 # [0.0, 1.0]
+                dictionary["annotation"] = [1.0] # [0.0, 1.0]
             elif annotation == 0.5:
-                # dictionary["annotation"] = [0.0, 0.0] # it is also possible to skip these cases
-                continue
+                dictionary["annotation"] = [0.5] # [0.0, 0.0] # it is also possible to skip these cases
+                # continue
             else:
                 raise Exception("annotation is not 0.0, 0.5 or 1.0")
             # dictionary["annotation"] = [float(line[3])]
@@ -85,7 +85,7 @@ class HATSDataset(Dataset):
             "attention_mask2": encoding2["attention_mask"].flatten(),
             "input_ids3": encoding3["input_ids"].flatten(),
             "attention_mask3": encoding3["attention_mask"].flatten(),
-            "label": torch.tensor(self.labels[idx], dtype=torch.long) # should be dtype=torch.long
+            "label": torch.tensor(self.labels[idx], dtype=torch.float) # should be dtype=torch.long
         })
 
 # set dataset
@@ -103,7 +103,7 @@ class HypothesisClassifier(nn.Module):
         self.fc = nn.Sequential(
             nn.Linear(3 * self.camembert.config.hidden_size, 128),
             nn.ReLU(),
-            nn.Linear(128, 1), # should be (128, 1)
+            nn.Linear(128, 1, bias=False), # should be (128, 1)
         )
 
     def forward(self, input_ids1, attention_mask1, input_ids2, attention_mask2, input_ids3, attention_mask3):
@@ -172,6 +172,10 @@ for epoch in range(num_epochs):
 
         optimizer.zero_grad()
         logits = hypothesis_classifier(input_ids1, attention_mask1, input_ids2, attention_mask2, input_ids3, attention_mask3)
+        # print("logits:", logits)
+        # print("labels:", labels)
+        # print("type(logits[0][0]):", type(logits[0][0]))
+        # print("type(labels[0][0]):", type(labels[0][0]))
         loss = loss_fn(logits, labels)
         l = loss.item()
         losses.append(l)
