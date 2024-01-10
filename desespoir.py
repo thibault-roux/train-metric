@@ -157,9 +157,9 @@ for epoch in range(num_epochs):
     # compute the time to process 100 batches
     start = time.time()
     for i, batch in enumerate(dataloader):
-        if i> 100:
-            print("Time to process 100 batches:", time.time() - start)
-            break
+        # if i> 100:
+        #     print("Time to process 100 batches:", time.time() - start)
+        #     break
         bar.update(i)
         # for batch in dataloader:
         input_ids1 = batch["input_ids1"]
@@ -209,8 +209,8 @@ for epoch in range(num_epochs):
     bar = progressbar.ProgressBar(max_value=100)
     # for batch in dataloader:
     for i, batch in enumerate(dataloader):
-        if i> 100:
-            break
+        # if i> 100:
+        #     break
         bar.update(i)
         input_ids1 = batch["input_ids1"]
         attention_mask1 = batch["attention_mask1"]
