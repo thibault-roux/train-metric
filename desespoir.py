@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 from transformers import CamembertModel
 from torch.utils.data import DataLoader
+import progressbar
 
 
 # myenv2
@@ -83,7 +84,7 @@ class HATSDataset(Dataset):
             "attention_mask2": encoding2["attention_mask"].flatten(),
             "input_ids3": encoding3["input_ids"].flatten(),
             "attention_mask3": encoding3["attention_mask"].flatten(),
-            "label": torch.tensor(self.labels[idx], dtype=torch.float)
+            "label": torch.tensor(self.labels[idx], dtype=torch.long) # should be dtype=torch.long
         })
 
 # set dataset
@@ -101,7 +102,7 @@ class HypothesisClassifier(nn.Module):
         self.fc = nn.Sequential(
             nn.Linear(3 * self.camembert.config.hidden_size, 128),
             nn.ReLU(),
-            nn.Linear(128, 2),
+            nn.Linear(128, 1), # should be (128, 1)
         )
 
     def forward(self, input_ids1, attention_mask1, input_ids2, attention_mask2, input_ids3, attention_mask3):
@@ -109,8 +110,8 @@ class HypothesisClassifier(nn.Module):
         outputs2 = self.camembert(input_ids=input_ids2, attention_mask=attention_mask2)
         outputs3 = self.camembert(input_ids=input_ids3, attention_mask=attention_mask3)
         pooled_output1 = outputs1.pooler_output
-        pooled_output2 = outputs1.pooler_output
-        pooled_output3 = outputs1.pooler_output
+        pooled_output2 = outputs2.pooler_output
+        pooled_output3 = outputs3.pooler_output
         # logits = self.linear(pooled_output)
         concatenated = torch.cat([pooled_output1, pooled_output2, pooled_output3], dim=1)
         logits = self.fc(concatenated)
@@ -121,31 +122,45 @@ class HypothesisClassifier(nn.Module):
         self.camembert.save_pretrained(path)
         print("Saved")
 
-camembert_model = CamembertModel.from_pretrained('dangvantuan/sentence-camembert-large', num_labels=2)
+camembert_model = CamembertModel.from_pretrained('dangvantuan/sentence-camembert-base', num_labels=2)
 hypothesis_classifier = HypothesisClassifier(camembert_model)
 
-
+# large = 91.4484, 87.2707
+# base = 28.6339, 29.0308
+# conclusion: base is three times faster than large
 
 
 # Define your training parameters
 optimizer = torch.optim.Adam(hypothesis_classifier.parameters(), lr=0.001)
-loss_fn = nn.CrossEntropyLoss()
+loss_fn = nn.BCEWithLogitsLoss() #nn.CrossEntropyLoss()
 
 
 print("Loading dataloader...")
 
 # DataLoader for training
-dataloader = DataLoader(dataset, batch_size=32, shuffle=True) # batch_size=32
+dataloader = DataLoader(dataset, batch_size=1, shuffle=True) # batch_size=32
 
 losses = []
 
 print("dataloader loaded")
 
+import time
 # Training loop
-num_epochs = 10
+num_epochs = 5
+eval_scores = []
 for epoch in range(num_epochs):
     print(epoch)
-    for batch in dataloader:
+    # progress bar
+    # bar = progressbar.ProgressBar(max_value=len(dataloader))
+    bar = progressbar.ProgressBar(max_value=100)
+    # compute the time to process 100 batches
+    start = time.time()
+    for i, batch in enumerate(dataloader):
+        if i> 100:
+            print("Time to process 100 batches:", time.time() - start)
+            break
+        bar.update(i)
+        # for batch in dataloader:
         input_ids1 = batch["input_ids1"]
         attention_mask1 = batch["attention_mask1"]
         input_ids2 = batch["input_ids2"]
@@ -160,7 +175,7 @@ for epoch in range(num_epochs):
         l = loss.item()
         losses.append(l)
         loss.backward()
-        optimizer.step()
+        optimizer.step() # à remettre
 
         # for name, param in hypothesis_classifier.named_parameters():
         #     if param.requires_grad:
@@ -170,6 +185,11 @@ for epoch in range(num_epochs):
         #         # check if the weights have changed
         #         if not torch.equal(old.data, param.data):
         #             print(f'Gradient: {param.grad}')
+        #             print(param.grad.shape) # shape is [32005, 768]
+        #             # print gradients not equal to 0
+        #             print(f'Gradient not equal to 0: {param.grad[param.grad != 0]}')
+        #             # print its shape
+        #             print(f'Gradient not equal to 0 shape: {param.grad[param.grad != 0].shape}')
         #             print(f'Before: {old.data}')
         #             print("Weights have changed")
         #             print(f'After: {param.data}')
@@ -177,9 +197,16 @@ for epoch in range(num_epochs):
         #             print("---")
         #             input()
     
+    print("Evaluating...")
     # evaluate after each epoch
     evaluation = 0
-    for batch in dataloader:
+    # progress bar
+    bar = progressbar.ProgressBar(max_value=100)
+    # for batch in dataloader:
+    for i, batch in enumerate(dataloader):
+        if i> 100:
+            break
+        bar.update(i)
         input_ids1 = batch["input_ids1"]
         attention_mask1 = batch["attention_mask1"]
         input_ids2 = batch["input_ids2"]
@@ -193,6 +220,7 @@ for epoch in range(num_epochs):
         evaluation += torch.sum(predictions == labels).item() / len(labels)
     evaluation /= len(dataloader)
     print("Evaluation:", evaluation)
+    eval_scores.append(evaluation)
 
 # save the embeddings model
 hypothesis_classifier.save_embedding("models/hypothesis_classifier")
@@ -204,3 +232,8 @@ torch.save(hypothesis_classifier.state_dict(), "models/hypothesis_classifier_ful
 with open("models/losses.txt", "w") as file:
     for l in losses:
         file.write(str(l) + "\n")
+
+# save the evaluation scores
+with open("models/eval_scores.txt", "w") as file:
+    for e in eval_scores:
+        file.write(str(e) + "\n")
