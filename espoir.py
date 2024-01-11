@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 from transformers import CamembertModel
 from torch.utils.data import DataLoader
+from torch.optim import Adam
 
 tokenizer = CamembertTokenizer.from_pretrained('dangvantuan/sentence-camembert-large')
 
@@ -86,3 +87,77 @@ class HATSDataset(Dataset):
 max_length = 30
 hats = read_hats()
 dataset = HATSDataset(hats, tokenizer, max_length)
+
+
+
+
+
+# added
+
+class SiameseNetwork(nn.Module):
+    def __init__(self, pretrained_model_name, max_length):
+        super(SiameseNetwork, self).__init__()
+
+        # CamemBERT model
+        self.camembert = CamembertModel.from_pretrained(pretrained_model_name)
+
+        # Projection layer for sentence embeddings
+        self.projection_layer = nn.Sequential(
+            nn.Linear(self.camembert.config.hidden_size, 128),
+            nn.ReLU(),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Linear(64, 32),
+            nn.ReLU(),
+            nn.Linear(32, 16)
+        )
+
+    def forward(self, input_ids, attention_mask):
+        outputs = self.camembert(input_ids=input_ids, attention_mask=attention_mask)
+        embeddings = outputs.last_hidden_state[:, 0, :]  # Take the [CLS] token representation
+
+        # Project embeddings through the projection layer
+        projected_embeddings = self.projection_layer(embeddings)
+
+        return projected_embeddings
+
+class SiameseNetworkWithMarginLoss(nn.Module):
+    def __init__(self, siamese_network):
+        super(SiameseNetworkWithMarginLoss, self).__init__()
+        self.siamese_network = siamese_network
+        self.margin_loss = nn.MarginRankingLoss(margin=0.5)
+
+    def forward(self, input_ids1, attention_mask1, input_ids2, attention_mask2, input_ids3, attention_mask3, label):
+        output1 = self.siamese_network(input_ids1, attention_mask1)
+        output2 = self.siamese_network(input_ids2, attention_mask2)
+        output3 = self.siamese_network(input_ids3, attention_mask3)
+
+        loss = self.margin_loss(output1, output2, label) + self.margin_loss(output1, output3, label)
+
+        return loss
+
+# Set up the Siamese network and the dataset
+pretrained_model_name = 'dangvantuan/sentence-camembert-large'
+max_length = 30
+siamese_network = SiameseNetwork(pretrained_model_name, max_length)
+siamese_with_margin_loss = SiameseNetworkWithMarginLoss(siamese_network)
+hats_dataset = HATSDataset(hats, tokenizer, max_length)
+
+# Set up data loader
+batch_size = 16
+dataloader = DataLoader(hats_dataset, batch_size=batch_size, shuffle=True)
+
+# Set up optimizer
+optimizer = Adam(siamese_with_margin_loss.parameters(), lr=1e-5)
+
+# Training loop
+num_epochs = 5
+for epoch in range(num_epochs):
+    for batch in dataloader:
+        optimizer.zero_grad()
+        loss = siamese_with_margin_loss(**batch)
+        loss.backward()
+        optimizer.step()
+
+# Save the fine-tuned model
+siamese_network.save_pretrained('fine_tuned_camembert_hats_model')
