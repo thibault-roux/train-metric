@@ -6,6 +6,7 @@ from transformers import CamembertModel
 from torch.utils.data import DataLoader
 from torch.optim import Adam
 import progressbar
+from sklearn.metrics import accuracy_score
 
 tokenizer = CamembertTokenizer.from_pretrained('dangvantuan/sentence-camembert-base')
 
@@ -148,7 +149,7 @@ def evaluate_siamese_network(siamese_network, dataloader):
         # for batch in dataloader:
         for i, batch in enumerate(dataloader):
             bar.update(i)
-            if i > 100:
+            if i > 50:
                 break
             input_ids1 = batch["input_ids1"]
             attention_mask1 = batch["attention_mask1"]
@@ -198,7 +199,7 @@ for epoch in range(num_epochs):
     bar = progressbar.ProgressBar(max_value=len(dataloader))
     for i, batch in enumerate(dataloader):
         bar.update(i)
-        if i > 100:
+        if i > 50:
             break
         optimizer.zero_grad()
         loss = siamese_with_margin_loss(**batch)
