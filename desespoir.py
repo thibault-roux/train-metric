@@ -9,7 +9,7 @@ import progressbar
 
 # myenv2
 
-tokenizer = CamembertTokenizer.from_pretrained('dangvantuan/sentence-camembert-large')
+tokenizer = CamembertTokenizer.from_pretrained('dangvantuan/sentence-camembert-base')
 
 
 def read_hats():
@@ -29,8 +29,8 @@ def read_hats():
             elif annotation == 1.0:
                 dictionary["annotation"] = [1.0] # [0.0, 1.0]
             elif annotation == 0.5:
-                dictionary["annotation"] = [0.5] # [0.0, 0.0] # it is also possible to skip these cases
-                # continue
+                # dictionary["annotation"] = [0.5] # [0.0, 0.0] # it is also possible to skip these cases
+                continue
             else:
                 raise Exception("annotation is not 0.0, 0.5 or 1.0")
             # dictionary["annotation"] = [float(line[3])]
@@ -132,7 +132,7 @@ hypothesis_classifier = HypothesisClassifier(camembert_model)
 
 
 # Define your training parameters
-optimizer = torch.optim.Adam(hypothesis_classifier.parameters(), lr=0.001)
+optimizer = torch.optim.Adam(hypothesis_classifier.parameters(), lr=0.1)
 loss_fn = nn.BCEWithLogitsLoss() #nn.CrossEntropyLoss()
 
 
@@ -157,9 +157,9 @@ for epoch in range(num_epochs):
     # compute the time to process 100 batches
     start = time.time()
     for i, batch in enumerate(dataloader):
-        # if i> 100:
-        #     print("Time to process 100 batches:", time.time() - start)
-        #     break
+        if i> 100:
+            print("Time to process 100 batches:", time.time() - start)
+            break
         bar.update(i)
         # for batch in dataloader:
         input_ids1 = batch["input_ids1"]
@@ -209,8 +209,8 @@ for epoch in range(num_epochs):
     bar = progressbar.ProgressBar(max_value=100)
     # for batch in dataloader:
     for i, batch in enumerate(dataloader):
-        # if i> 100:
-        #     break
+        if i > 100:
+            break
         bar.update(i)
         input_ids1 = batch["input_ids1"]
         attention_mask1 = batch["attention_mask1"]
