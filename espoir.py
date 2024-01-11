@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader
 from torch.optim import Adam
 import progressbar
 from sklearn.metrics import accuracy_score
+import os
 
 tokenizer = CamembertTokenizer.from_pretrained('dangvantuan/sentence-camembert-base')
 
@@ -176,7 +177,14 @@ def evaluate_siamese_network(siamese_network, dataloader):
 # Set up the Siamese network and the dataset
 pretrained_model_name = 'dangvantuan/sentence-camembert-base'
 max_length = 30
+
 siamese_network = SiameseNetwork(pretrained_model_name, max_length)
+# Load the last saved pretrained model if available
+saved_model_path = 'fine_tuned_camembert_hats_model.pth'
+if os.path.exists(saved_model_path):
+    siamese_network.load_state_dict(torch.load(saved_model_path))
+    print(f"Loaded pretrained model from {saved_model_path}")
+
 siamese_with_margin_loss = SiameseNetworkWithMarginLoss(siamese_network)
 hats_dataset = HATSDataset(hats, tokenizer, max_length)
 
@@ -192,7 +200,7 @@ eval_dataloader = DataLoader(hats_dataset, batch_size=batch_size, shuffle=False)
 optimizer = Adam(siamese_with_margin_loss.parameters(), lr=1e-5)
 
 # Training loop
-num_epochs = 5
+num_epochs = 25
 losses = []
 for epoch in range(num_epochs):
     print(epoch)
@@ -212,8 +220,10 @@ for epoch in range(num_epochs):
     accuracy = evaluate_siamese_network(siamese_network, eval_dataloader)
     print(f"Epoch {epoch + 1}/{num_epochs}, Accuracy: {accuracy:.4f}")
 
+    # Save the fine-tuned model
+    torch.save(siamese_network.state_dict(), saved_model_path)
+
 print("losses:", losses)
 
 # Save the fine-tuned model
-torch.save(siamese_network.state_dict(), 'fine_tuned_camembert_hats_model.pth')
 # siamese_network.save_pretrained('fine_tuned_camembert_hats_model')
