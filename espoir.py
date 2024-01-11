@@ -5,8 +5,9 @@ import torch.nn as nn
 from transformers import CamembertModel
 from torch.utils.data import DataLoader
 from torch.optim import Adam
+import progressbar
 
-tokenizer = CamembertTokenizer.from_pretrained('dangvantuan/sentence-camembert-large')
+tokenizer = CamembertTokenizer.from_pretrained('dangvantuan/sentence-camembert-base')
 
 def read_hats():
     # dataset = [{"reference": ref, "hypA": hypA, "nbrA": nbrA, "hypB": hypB, "nbrB": nbrB}, ...]
@@ -92,7 +93,6 @@ dataset = HATSDataset(hats, tokenizer, max_length)
 
 
 
-# added
 
 class SiameseNetwork(nn.Module):
     def __init__(self, pretrained_model_name, max_length):
@@ -136,28 +136,76 @@ class SiameseNetworkWithMarginLoss(nn.Module):
 
         return loss
 
+
+def evaluate_siamese_network(siamese_network, dataloader):
+    siamese_network.eval()
+    all_predictions = []
+    all_labels = []
+
+    with torch.no_grad():
+        for batch in dataloader:
+            input_ids1 = batch["input_ids1"]
+            attention_mask1 = batch["attention_mask1"]
+            input_ids2 = batch["input_ids2"]
+            attention_mask2 = batch["attention_mask2"]
+            input_ids3 = batch["input_ids3"]
+            attention_mask3 = batch["attention_mask3"]
+            labels = batch["label"]
+
+            output1 = siamese_network(input_ids1, attention_mask1)
+            output2 = siamese_network(input_ids2, attention_mask2)
+            output3 = siamese_network(input_ids3, attention_mask3)
+
+            similarity_pos = nn.functional.cosine_similarity(output1, output2)
+            similarity_neg = nn.functional.cosine_similarity(output1, output3)
+            predictions = (similarity_pos > similarity_neg).float()
+
+            all_predictions.extend(predictions.cpu().numpy())
+            all_labels.extend(labels.cpu().numpy())
+
+    accuracy = accuracy_score(all_labels, all_predictions)
+    return accuracy
+
 # Set up the Siamese network and the dataset
-pretrained_model_name = 'dangvantuan/sentence-camembert-large'
+pretrained_model_name = 'dangvantuan/sentence-camembert-base'
 max_length = 30
 siamese_network = SiameseNetwork(pretrained_model_name, max_length)
 siamese_with_margin_loss = SiameseNetworkWithMarginLoss(siamese_network)
 hats_dataset = HATSDataset(hats, tokenizer, max_length)
 
+
 # Set up data loader
 batch_size = 16
 dataloader = DataLoader(hats_dataset, batch_size=batch_size, shuffle=True)
+
+# Set up data loader for evaluation
+eval_dataloader = DataLoader(hats_dataset, batch_size=batch_size, shuffle=False)
 
 # Set up optimizer
 optimizer = Adam(siamese_with_margin_loss.parameters(), lr=1e-5)
 
 # Training loop
 num_epochs = 5
+losses = []
 for epoch in range(num_epochs):
-    for batch in dataloader:
+    print(epoch)
+    bar = progressbar.ProgressBar(max_value=len(dataloader))
+    for i, batch in enumerate(dataloader):
+        bar.update(i)
+        if i > 100:
+            break
         optimizer.zero_grad()
         loss = siamese_with_margin_loss(**batch)
         loss.backward()
+        losses.append(loss.item())
+        print(loss.item())
         optimizer.step()
+
+    # Evaluation
+    accuracy = evaluate_siamese_network(siamese_network, eval_dataloader)
+    print(f"Epoch {epoch + 1}/{num_epochs}, Accuracy: {accuracy:.4f}")
+
+print("losses:", losses)
 
 # Save the fine-tuned model
 siamese_network.save_pretrained('fine_tuned_camembert_hats_model')
