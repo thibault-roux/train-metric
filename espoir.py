@@ -149,8 +149,8 @@ def evaluate_siamese_network(siamese_network, dataloader):
         # for batch in dataloader:
         for i, batch in enumerate(dataloader):
             bar.update(i)
-            if i > 50:
-                break
+            # if i > 50:
+            #     break
             input_ids1 = batch["input_ids1"]
             attention_mask1 = batch["attention_mask1"]
             input_ids2 = batch["input_ids2"]
@@ -182,7 +182,7 @@ hats_dataset = HATSDataset(hats, tokenizer, max_length)
 
 
 # Set up data loader
-batch_size = 1
+batch_size = 32
 dataloader = DataLoader(hats_dataset, batch_size=batch_size, shuffle=True)
 
 # Set up data loader for evaluation
@@ -199,8 +199,8 @@ for epoch in range(num_epochs):
     bar = progressbar.ProgressBar(max_value=len(dataloader))
     for i, batch in enumerate(dataloader):
         bar.update(i)
-        if i > 50:
-            break
+        # if i > 50:
+        #     break
         optimizer.zero_grad()
         loss = siamese_with_margin_loss(**batch)
         loss.backward()
@@ -215,4 +215,5 @@ for epoch in range(num_epochs):
 print("losses:", losses)
 
 # Save the fine-tuned model
-siamese_network.save_pretrained('fine_tuned_camembert_hats_model')
+torch.save(siamese_network.state_dict(), 'fine_tuned_camembert_hats_model.pth')
+# siamese_network.save_pretrained('fine_tuned_camembert_hats_model')
