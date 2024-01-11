@@ -143,7 +143,13 @@ def evaluate_siamese_network(siamese_network, dataloader):
     all_labels = []
 
     with torch.no_grad():
-        for batch in dataloader:
+        # progressbar 
+        bar = progressbar.ProgressBar(max_value=len(dataloader))
+        # for batch in dataloader:
+        for i, batch in enumerate(dataloader):
+            bar.update(i)
+            if i > 100:
+                break
             input_ids1 = batch["input_ids1"]
             attention_mask1 = batch["attention_mask1"]
             input_ids2 = batch["input_ids2"]
@@ -175,7 +181,7 @@ hats_dataset = HATSDataset(hats, tokenizer, max_length)
 
 
 # Set up data loader
-batch_size = 16
+batch_size = 1
 dataloader = DataLoader(hats_dataset, batch_size=batch_size, shuffle=True)
 
 # Set up data loader for evaluation
@@ -198,7 +204,7 @@ for epoch in range(num_epochs):
         loss = siamese_with_margin_loss(**batch)
         loss.backward()
         losses.append(loss.item())
-        print(loss.item())
+        # print(loss.item())
         optimizer.step()
 
     # Evaluation
