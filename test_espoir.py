@@ -83,23 +83,23 @@ def evaluator(metric, dataset, memory=0, certitude=0.7, verbose=True):
             accepted += 1
             scoreA = metric(dataset[i]["reference"], dataset[i]["hypA"], memory=memory)
             scoreB = metric(dataset[i]["reference"], dataset[i]["hypB"], memory=memory)
-            print()
-            print(scoreA)
-            print(scoreB)
+            # print()
+            # print(scoreA)
+            # print(scoreB)
             if (scoreA < scoreB and nbrA > nbrB) or (scoreB < scoreA and nbrB > nbrA):
                 correct += 1
-                print("correct")
+                # print("correct")
             elif scoreA == scoreB:
                 egal += 1
-                print("equal")
+                # print("equal")
             else:
                 incorrect += 1
-                print("incorrect")
-            input()
+                # print("incorrect")
+            # input()
             continue
         else:
             ignored += 1
-    print()
+    # print()
     return correct/(correct+incorrect+egal)*100
 
 
@@ -160,35 +160,7 @@ if __name__ == '__main__':
     print("Importing...")
 
 
-    check_weight = False
-    
-    if check_weight:
-
-        tokenizer = AutoTokenizer.from_pretrained('dangvantuan/sentence-camembert-large')
-        model1 = AutoModel.from_pretrained('./models/hypothesis_classifier')
-        memory1 = (tokenizer, model1)
-
-        tokenizer = AutoTokenizer.from_pretrained('dangvantuan/sentence-camembert-large')
-        model2 = AutoModel.from_pretrained('dangvantuan/sentence-camembert-large')
-        memory2 = (tokenizer, model2)
-
-        model3 = SentenceTransformer('dangvantuan/sentence-camembert-large')
-        # model = model.eval()
-        # memory=model2
-
-        text = "Voici un premier exemple"
-        inf1 = inference_semdist2(text, memory1) # trained
-        inf2 = inference_semdist2(text, memory2) # same as model3
-        inf3 = model3.encode(text).reshape(1, -1) # base sentence transformer
-        print(inf1)
-        print(inf2)
-        print(inf3)
-        
-        exit(0)
-
-    
-
-    test_new_model = True
+    test_new_model = True # test if we use the fine-tuned model or the base one
 
     if test_new_model:
         print("Testing the fine-tuned model...")
