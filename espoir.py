@@ -24,9 +24,9 @@ def read_hats():
             dictionary["hypB"] = line[2]
             annotation = float(line[3])
             if annotation == 0.0: # nbrA < nbrB | i.e hypB is the best
-                dictionary["annotation"] = [-1.0]
+                dictionary["annotation"] = -1.0
             elif annotation == 1.0: # nbrA > nbrB | i.e hypA is the best
-                dictionary["annotation"] = [1.0]
+                dictionary["annotation"] = 1.0
             elif annotation == 0.5:
                 # dictionary["annotation"] = [0.5]
                 continue
@@ -103,27 +103,10 @@ class SiameseNetwork(nn.Module):
         # CamemBERT model
         self.camembert = CamembertModel.from_pretrained(pretrained_model_name)
 
-        # deleted because we do not want projected embeddings
-        # # Projection layer for sentence embeddings
-        # self.projection_layer = nn.Sequential(
-        #     nn.Linear(self.camembert.config.hidden_size, 128),
-        #     nn.ReLU(),
-        #     nn.Linear(128, 64),
-        #     nn.ReLU(),
-        #     nn.Linear(64, 32),
-        #     nn.ReLU(),
-        #     nn.Linear(32, 16)
-        # )
 
     def forward(self, input_ids, attention_mask):
         outputs = self.camembert(input_ids=input_ids, attention_mask=attention_mask)
 
-        # deleted because we do not want projected embeddings
-        # embeddings = outputs.last_hidden_state[:, 0, :]  # Take the [CLS] token representation
-        # # Project embeddings through the projection layer
-        # projected_embeddings = self.projection_layer(embeddings)
-        # return projected_embeddings
-        
         return outputs.last_hidden_state[:, 0, :]  # Take the [CLS] token representation
 
 class SiameseNetworkWithMarginLoss(nn.Module):
@@ -157,8 +140,8 @@ def evaluate_siamese_network(siamese_network, dataloader):
         # for batch in dataloader:
         for i, batch in enumerate(dataloader):
             bar.update(i)
-            # if i > 50:
-            #     break
+            if i > 5: # 50:
+                break
             input_ids1 = batch["input_ids1"]
             attention_mask1 = batch["attention_mask1"]
             input_ids2 = batch["input_ids2"]
@@ -174,12 +157,13 @@ def evaluate_siamese_network(siamese_network, dataloader):
             similarity_2 = nn.functional.cosine_similarity(output1, output2)
             similarity_3 = nn.functional.cosine_similarity(output1, output3)
             predictions = (similarity_2 > similarity_3).float()
+            # convert predictions 0. to -1
+            for i, prediction in enumerate(predictions):
+                if prediction == 0.0:
+                    predictions[i] = -1.0
 
             all_predictions.extend(predictions.cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
-            print(predictions)
-            print(labels)
-            input()
 
 
     accuracy = accuracy_score(all_labels, all_predictions)
@@ -207,9 +191,6 @@ dataloader = DataLoader(hats_dataset, batch_size=batch_size, shuffle=True)
 # Set up data loader for evaluation
 eval_dataloader = DataLoader(hats_dataset, batch_size=batch_size, shuffle=False)
 
-# test to delete
-accuracy = evaluate_siamese_network(siamese_network, eval_dataloader)
-
 # Set up optimizer
 optimizer = Adam(siamese_with_margin_loss.parameters(), lr=1e-5)
 
@@ -221,15 +202,19 @@ for epoch in range(num_epochs):
     bar = progressbar.ProgressBar(max_value=len(dataloader))
     for i, batch in enumerate(dataloader):
         bar.update(i)
-        # if i > 50:
-        #     break
+        if i > 2: # 50:
+            break
+
+        input_ids1 = batch["input_ids1"]
+        attention_mask1 = batch["attention_mask1"]
+        input_ids2 = batch["input_ids2"]
+        attention_mask2 = batch["attention_mask2"]
+        input_ids3 = batch["input_ids3"]
+        attention_mask3 = batch["attention_mask3"]
+        labels = batch["label"]
+
         optimizer.zero_grad()
-        print()
-        print("type(batch):", type(batch))
-        print("batch.keys():", batch.keys())
-        print("batch['input_ids1'].shape:", batch['input_ids1'].shape)
-        input()
-        loss = siamese_with_margin_loss(**batch)
+        loss = siamese_with_margin_loss(input_ids1, attention_mask1, input_ids2, attention_mask2, input_ids3, attention_mask3, labels)
         loss.backward()
         losses.append(loss.item())
         # print(loss.item())
