@@ -114,40 +114,15 @@ def write(namefile, x, y):
 
 import torch.nn as nn
 
-
-
-
-
-
 class SiameseNetwork(nn.Module):
     def __init__(self, pretrained_model_name, max_length):
         super(SiameseNetwork, self).__init__()
-
         # CamemBERT model
         self.camembert = AutoModel.from_pretrained(pretrained_model_name)
 
-        # Projection layer for sentence embeddings
-        self.projection_layer = nn.Sequential(
-            nn.Linear(self.camembert.config.hidden_size, 128),
-            nn.ReLU(),
-            nn.Linear(128, 64),
-            nn.ReLU(),
-            nn.Linear(64, 32),
-            nn.ReLU(),
-            nn.Linear(32, 16)
-        )
-
     def forward(self, input_ids, attention_mask):
         outputs = self.camembert(input_ids=input_ids, attention_mask=attention_mask)
-        embeddings = outputs.last_hidden_state[:, 0, :]  # Take the [CLS] token representation
-
-        # Project embeddings through the projection layer
-        projected_embeddings = self.projection_layer(embeddings)
-
-        return projected_embeddings
-
-
-
+        return outputs.last_hidden_state[:, 0, :]  # Take the [CLS] token representation
 
 
 if __name__ == '__main__':
@@ -184,6 +159,7 @@ if __name__ == '__main__':
     print("Evaluating...")
     x_score = evaluator(semdist2, dataset, memory=memory, certitude=cert_X)
     
+    print()
     print(x_score)
 
     # indeed the model always infer the same score except sometimes :
