@@ -23,9 +23,9 @@ def read_hats():
             dictionary["hypA"] = line[1]
             dictionary["hypB"] = line[2]
             annotation = float(line[3])
-            if annotation == 0.0:
-                dictionary["annotation"] = [0.0]
-            elif annotation == 1.0:
+            if annotation == 0.0: # nbrA < nbrB | i.e hypB is the best
+                dictionary["annotation"] = [-1.0]
+            elif annotation == 1.0: # nbrA > nbrB | i.e hypA is the best
                 dictionary["annotation"] = [1.0]
             elif annotation == 0.5:
                 # dictionary["annotation"] = [0.5]
@@ -103,38 +103,45 @@ class SiameseNetwork(nn.Module):
         # CamemBERT model
         self.camembert = CamembertModel.from_pretrained(pretrained_model_name)
 
-        # Projection layer for sentence embeddings
-        self.projection_layer = nn.Sequential(
-            nn.Linear(self.camembert.config.hidden_size, 128),
-            nn.ReLU(),
-            nn.Linear(128, 64),
-            nn.ReLU(),
-            nn.Linear(64, 32),
-            nn.ReLU(),
-            nn.Linear(32, 16)
-        )
+        # deleted because we do not want projected embeddings
+        # # Projection layer for sentence embeddings
+        # self.projection_layer = nn.Sequential(
+        #     nn.Linear(self.camembert.config.hidden_size, 128),
+        #     nn.ReLU(),
+        #     nn.Linear(128, 64),
+        #     nn.ReLU(),
+        #     nn.Linear(64, 32),
+        #     nn.ReLU(),
+        #     nn.Linear(32, 16)
+        # )
 
     def forward(self, input_ids, attention_mask):
         outputs = self.camembert(input_ids=input_ids, attention_mask=attention_mask)
-        embeddings = outputs.last_hidden_state[:, 0, :]  # Take the [CLS] token representation
 
-        # Project embeddings through the projection layer
-        projected_embeddings = self.projection_layer(embeddings)
-
-        return projected_embeddings
+        # deleted because we do not want projected embeddings
+        # embeddings = outputs.last_hidden_state[:, 0, :]  # Take the [CLS] token representation
+        # # Project embeddings through the projection layer
+        # projected_embeddings = self.projection_layer(embeddings)
+        # return projected_embeddings
+        
+        return outputs
 
 class SiameseNetworkWithMarginLoss(nn.Module):
     def __init__(self, siamese_network):
         super(SiameseNetworkWithMarginLoss, self).__init__()
         self.siamese_network = siamese_network
-        self.margin_loss = nn.MarginRankingLoss(margin=0.5)
+        self.margin_loss = nn.MarginRankingLoss(margin=0) # margin=0.5
 
     def forward(self, input_ids1, attention_mask1, input_ids2, attention_mask2, input_ids3, attention_mask3, label):
         output1 = self.siamese_network(input_ids1, attention_mask1)
         output2 = self.siamese_network(input_ids2, attention_mask2)
         output3 = self.siamese_network(input_ids3, attention_mask3)
 
-        loss = self.margin_loss(output1, output2, label) + self.margin_loss(output1, output3, label)
+        # compute cosine similarity between output1 and output2, and between output1 and output3
+        similarity_2 = nn.functional.cosine_similarity(output1, output2) # ref and hypA
+        similarity_3 = nn.functional.cosine_similarity(output1, output3) # ref and hypB
+
+        loss = self.margin_loss(similarity_2, similarity_3, label)
 
         return loss
 
@@ -180,7 +187,7 @@ max_length = 30
 
 siamese_network = SiameseNetwork(pretrained_model_name, max_length)
 # Load the last saved pretrained model if available
-saved_model_path = 'fine_tuned_camembert_hats_model.pth'
+saved_model_path = 'models/fine_tuned_camembert_hats_model.pth'
 if os.path.exists(saved_model_path):
     siamese_network.load_state_dict(torch.load(saved_model_path))
     print(f"Loaded pretrained model from {saved_model_path}")
@@ -190,7 +197,7 @@ hats_dataset = HATSDataset(hats, tokenizer, max_length)
 
 
 # Set up data loader
-batch_size = 32
+batch_size = 3 # 32
 dataloader = DataLoader(hats_dataset, batch_size=batch_size, shuffle=True)
 
 # Set up data loader for evaluation
@@ -210,6 +217,11 @@ for epoch in range(num_epochs):
         # if i > 50:
         #     break
         optimizer.zero_grad()
+        print()
+        print("type(batch):", type(batch))
+        print("batch.keys():", batch.keys())
+        print("batch['input_ids1'].shape:", batch['input_ids1'].shape)
+        input()
         loss = siamese_with_margin_loss(**batch)
         loss.backward()
         losses.append(loss.item())
