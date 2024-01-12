@@ -124,7 +124,7 @@ class SiameseNetwork(nn.Module):
         # projected_embeddings = self.projection_layer(embeddings)
         # return projected_embeddings
         
-        return outputs
+        return outputs.last_hidden_state[:, 0, :]  # Take the [CLS] token representation
 
 class SiameseNetworkWithMarginLoss(nn.Module):
     def __init__(self, siamese_network):
@@ -171,12 +171,16 @@ def evaluate_siamese_network(siamese_network, dataloader):
             output2 = siamese_network(input_ids2, attention_mask2)
             output3 = siamese_network(input_ids3, attention_mask3)
 
-            similarity_pos = nn.functional.cosine_similarity(output1, output2)
-            similarity_neg = nn.functional.cosine_similarity(output1, output3)
-            predictions = (similarity_pos > similarity_neg).float()
+            similarity_2 = nn.functional.cosine_similarity(output1, output2)
+            similarity_3 = nn.functional.cosine_similarity(output1, output3)
+            predictions = (similarity_2 > similarity_3).float()
 
             all_predictions.extend(predictions.cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
+            print(predictions)
+            print(labels)
+            input()
+
 
     accuracy = accuracy_score(all_labels, all_predictions)
     return accuracy
@@ -202,6 +206,9 @@ dataloader = DataLoader(hats_dataset, batch_size=batch_size, shuffle=True)
 
 # Set up data loader for evaluation
 eval_dataloader = DataLoader(hats_dataset, batch_size=batch_size, shuffle=False)
+
+# test to delete
+accuracy = evaluate_siamese_network(siamese_network, eval_dataloader)
 
 # Set up optimizer
 optimizer = Adam(siamese_with_margin_loss.parameters(), lr=1e-5)
