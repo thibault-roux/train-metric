@@ -140,7 +140,7 @@ def evaluate_siamese_network(siamese_network, dataloader):
         # for batch in dataloader:
         for i, batch in enumerate(dataloader):
             bar.update(i)
-            if i > 5: # 50:
+            if i > 50: # 50:
                 break
             input_ids1 = batch["input_ids1"]
             attention_mask1 = batch["attention_mask1"]
@@ -202,7 +202,7 @@ for epoch in range(num_epochs):
     bar = progressbar.ProgressBar(max_value=len(dataloader))
     for i, batch in enumerate(dataloader):
         bar.update(i)
-        if i > 2: # 50:
+        if i > 50:
             break
 
         input_ids1 = batch["input_ids1"]
