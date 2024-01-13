@@ -9,12 +9,12 @@ import progressbar
 from sklearn.metrics import accuracy_score
 import os
 
-tokenizer = CamembertTokenizer.from_pretrained('dangvantuan/sentence-camembert-base')
+tokenizer = CamembertTokenizer.from_pretrained('dangvantuan/sentence-camembert-large')
 
-def read_hats():
+def read_hats(namefile):
     # dataset = [{"reference": ref, "hypA": hypA, "nbrA": nbrA, "hypB": hypB, "nbrB": nbrB}, ...]
     dataset = []
-    with open("datasets/hats_annotation.txt", "r", encoding="utf8") as file:
+    with open(namefile, "r", encoding="utf8") as file:
         next(file)
         for line in file:
             line = line[:-1].split("\t")
@@ -86,15 +86,6 @@ class HATSDataset(Dataset):
             "label": torch.tensor(self.labels[idx], dtype=torch.float)
         })
 
-# set dataset
-max_length = 30
-hats = read_hats()
-dataset = HATSDataset(hats, tokenizer, max_length)
-
-
-
-
-
 
 class SiameseNetwork(nn.Module):
     def __init__(self, pretrained_model_name, max_length):
@@ -140,8 +131,6 @@ def evaluate_siamese_network(siamese_network, dataloader):
         # for batch in dataloader:
         for i, batch in enumerate(dataloader):
             bar.update(i)
-            if i > 50: # 50:
-                break
             input_ids1 = batch["input_ids1"]
             attention_mask1 = batch["attention_mask1"]
             input_ids2 = batch["input_ids2"]
@@ -169,41 +158,43 @@ def evaluate_siamese_network(siamese_network, dataloader):
     accuracy = accuracy_score(all_labels, all_predictions)
     return accuracy
 
-# Set up the Siamese network and the dataset
-pretrained_model_name = 'dangvantuan/sentence-camembert-base'
-max_length = 30
 
+# set dataset
+max_length = 30
+hats_train = read_hats("datasets/hats_annotation_train.txt")
+hats_test = read_hats("datasets/hats_annotation_test.txt")
+hats_dataset_train = HATSDataset(hats_train, tokenizer, max_length)
+hats_dataset_test = HATSDataset(hats_test, tokenizer, max_length)
+
+# Set up the Siamese network and the dataset
+pretrained_model_name = 'dangvantuan/sentence-camembert-large'
 siamese_network = SiameseNetwork(pretrained_model_name, max_length)
 # Load the last saved pretrained model if available
-saved_model_path = 'models/fine_tuned_camembert_hats_model.pth'
+saved_model_path = 'models/large/fine_tuned_camembert_hats_model.pth'
 if os.path.exists(saved_model_path):
     siamese_network.load_state_dict(torch.load(saved_model_path))
     print(f"Loaded pretrained model from {saved_model_path}")
-
 siamese_with_margin_loss = SiameseNetworkWithMarginLoss(siamese_network)
-hats_dataset = HATSDataset(hats, tokenizer, max_length)
 
 
-# Set up data loader
-batch_size = 3 # 32
-dataloader = DataLoader(hats_dataset, batch_size=batch_size, shuffle=True)
+# Set up data loader for training
+batch_size = 32
+dataloader = DataLoader(hats_dataset_train, batch_size=batch_size, shuffle=True)
 
 # Set up data loader for evaluation
-eval_dataloader = DataLoader(hats_dataset, batch_size=batch_size, shuffle=False)
+eval_dataloader = DataLoader(hats_dataset_test, batch_size=batch_size, shuffle=False)
 
 # Set up optimizer
 optimizer = Adam(siamese_with_margin_loss.parameters(), lr=1e-5)
 
 # Training loop
-num_epochs = 25
+num_epochs = 40
 losses = []
 for epoch in range(num_epochs):
     print(epoch)
     bar = progressbar.ProgressBar(max_value=len(dataloader))
     for i, batch in enumerate(dataloader):
         bar.update(i)
-        if i > 50:
-            break
 
         input_ids1 = batch["input_ids1"]
         attention_mask1 = batch["attention_mask1"]
