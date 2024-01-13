@@ -190,6 +190,7 @@ optimizer = Adam(siamese_with_margin_loss.parameters(), lr=1e-5)
 # Training loop
 num_epochs = 40
 losses = []
+best_accuracy = 0
 for epoch in range(num_epochs):
     print(epoch)
     bar = progressbar.ProgressBar(max_value=len(dataloader))
@@ -211,12 +212,15 @@ for epoch in range(num_epochs):
         # print(loss.item())
         optimizer.step()
 
+    # Save the fine-tuned model
+    torch.save(siamese_network.state_dict(), saved_model_path + f".{epoch}")
+
     # Evaluation
     accuracy = evaluate_siamese_network(siamese_network, eval_dataloader)
     print(f"Epoch {epoch + 1}/{num_epochs}, Accuracy: {accuracy:.4f}")
-
-    # Save the fine-tuned model
-    torch.save(siamese_network.state_dict(), saved_model_path)
+    if accuracy > best_accuracy:
+        best_accuracy = accuracy
+        torch.save(siamese_network.state_dict(), saved_model_path)
 
 print("losses:", losses)
 
