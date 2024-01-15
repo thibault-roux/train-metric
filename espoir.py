@@ -188,7 +188,7 @@ eval_dataloader = DataLoader(hats_dataset_test, batch_size=batch_size, shuffle=F
 optimizer = Adam(siamese_with_margin_loss.parameters(), lr=1e-5)
 
 # Training loop
-num_epochs = 40
+num_epochs = 5
 losses = []
 best_accuracy = 0
 for epoch in range(num_epochs):
@@ -218,6 +218,9 @@ for epoch in range(num_epochs):
     # Evaluation
     accuracy = evaluate_siamese_network(siamese_network, eval_dataloader)
     print(f"Epoch {epoch + 1}/{num_epochs}, Accuracy: {accuracy:.4f}")
+    # write it in results/accuracy.txt
+    with open("results/accuracy.txt", "a", encoding="utf8") as file:
+        file.write(str(epoch) + "\t" + str(accuracy) + "\n")
     if accuracy > best_accuracy:
         best_accuracy = accuracy
         torch.save(siamese_network.state_dict(), saved_model_path)
