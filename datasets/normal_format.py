@@ -40,7 +40,6 @@ def convert_to_normal_format(subset): # subset = {train, test}
             if subset_item["reference"] == full_item["reference"] and subset_item["hypA"] == full_item["hypA"] and subset_item["hypB"] == full_item["hypB"]:
                 normal_dataset.append(full_item)
                 break
-        print("Not found: ", subset_item)
     # write normal dataset
     with open("hats_" + subset + ".txt", "w", encoding="utf8") as file:
         file.write("reference\thypA\tnbrA\thypB\tnbrB\n")
