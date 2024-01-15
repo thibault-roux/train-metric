@@ -124,36 +124,24 @@ class SiameseNetwork(nn.Module):
         outputs = self.camembert(input_ids=input_ids, attention_mask=attention_mask)
         return outputs.last_hidden_state[:, 0, :]  # Take the [CLS] token representation
 
-
-if __name__ == '__main__':
-    print("Reading dataset...")
-    dataset = read_dataset("hats.txt")
-
-    cert_X = 1
-
-    # useful for the metric but we do not need to recompute every time
-    print("Importing...")
-
-
-    test_new_model = True # test if we use the fine-tuned model or the base one
-
+def inference_test(epoch, test_new_model, certitude):
     if test_new_model:
         print("Testing the fine-tuned model...")
         # Set up the Siamese network and the dataset
-        pretrained_model_name = 'dangvantuan/sentence-camembert-base'
+        pretrained_model_name = 'dangvantuan/sentence-camembert-large'
         max_length = 30
         siamese_network = SiameseNetwork(pretrained_model_name, max_length)
         # Load the last saved pretrained model if available
-        saved_model_path = 'models/fine_tuned_camembert_hats_model.pth'
+        saved_model_path = 'models/large/fine_tuned_camembert_hats_model.pth' + epoch
         if os.path.exists(saved_model_path):
             siamese_network.load_state_dict(torch.load(saved_model_path))
             print(f"Loaded pretrained model from {saved_model_path}")
         model = siamese_network.camembert
     else:
-        print("Testing the base model...")
-        model = AutoModel.from_pretrained('dangvantuan/sentence-camembert-base') # large
+        print("Testing the large model...")
+        model = AutoModel.from_pretrained('dangvantuan/sentence-camembert-large') # large
     
-    tokenizer = AutoTokenizer.from_pretrained('dangvantuan/sentence-camembert-base') # large
+    tokenizer = AutoTokenizer.from_pretrained('dangvantuan/sentence-camembert-large') # large
     memory = (tokenizer, model)
 
     print("Evaluating...")
@@ -162,9 +150,21 @@ if __name__ == '__main__':
     print()
     print(x_score)
 
-    # indeed the model always infer the same score except sometimes :
-    # most of the times : 1.1920928955078125e-05
-    # sometimes : 5.9604644775390625e-06
-    # three times : 0.0
-    # three times : 1.7881393432617188e-05
-    # one time : 2.384185791015625e-05
+    with open("results/correlation.txt", "a", encoding="utf8") as file:
+        file.write(str(epoch) + "\t" + str(x_score) + "\n")
+
+
+if __name__ == '__main__':
+    print("Reading dataset...")
+    dataset = read_dataset("hats_test.txt")
+
+    cert_X = 1
+
+    # useful for the metric but we do not need to recompute every time
+    print("Importing...")
+
+    test_new_model = True # test if we use the fine-tuned model or the large one
+
+    for epoch in range(17): # ckpt epoch saved
+        inference_test(epoch, test_new_model, cert_X)
+        
