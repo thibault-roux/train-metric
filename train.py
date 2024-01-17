@@ -190,7 +190,7 @@ eval_dataloader = DataLoader(hats_dataset_test, batch_size=batch_size, shuffle=F
 optimizer = Adam(siamese_with_margin_loss.parameters(), lr=1e-5)
 
 # Training loop
-num_epochs = 25
+num_epochs = 40
 losses = []
 best_accuracy = 0
 for epoch in range(num_epochs):
