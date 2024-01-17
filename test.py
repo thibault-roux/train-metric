@@ -145,7 +145,7 @@ def inference_test(dataset, epoch, test_new_model, certitude):
     memory = (tokenizer, model)
 
     print("Evaluating...")
-    x_score = evaluator(semdist2, dataset, memory=memory, certitude=cert_X)
+    x_score = evaluator(semdist2, dataset, memory=memory, certitude=certitude)
     
     print()
     print(x_score)
@@ -156,7 +156,7 @@ def inference_test(dataset, epoch, test_new_model, certitude):
 
 def specific_epoch(epoch):
     dataset = read_dataset("hats_test.txt")
-    inference_test(dataset, epoch, test_new_model=False, cert_X=1)
+    inference_test(dataset, epoch, test_new_model=False, certitude=1)
 
 
 if __name__ == '__main__':
