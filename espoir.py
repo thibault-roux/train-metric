@@ -9,6 +9,8 @@ import progressbar
 from sklearn.metrics import accuracy_score
 import os
 
+import test_espoir
+
 tokenizer = CamembertTokenizer.from_pretrained('dangvantuan/sentence-camembert-large')
 
 def read_hats(namefile):
@@ -188,7 +190,7 @@ eval_dataloader = DataLoader(hats_dataset_test, batch_size=batch_size, shuffle=F
 optimizer = Adam(siamese_with_margin_loss.parameters(), lr=1e-5)
 
 # Training loop
-num_epochs = 5
+num_epochs = 25
 losses = []
 best_accuracy = 0
 for epoch in range(num_epochs):
@@ -221,6 +223,9 @@ for epoch in range(num_epochs):
     # write it in results/accuracy.txt
     with open("results/accuracy.txt", "a", encoding="utf8") as file:
         file.write(str(epoch) + "\t" + str(accuracy) + "\n")
+    
+    test_espoir.specific_epoch(epoch) # test the fine-tuned model on HATS
+
     if accuracy > best_accuracy:
         best_accuracy = accuracy
         torch.save(siamese_network.state_dict(), saved_model_path)

@@ -124,7 +124,7 @@ class SiameseNetwork(nn.Module):
         outputs = self.camembert(input_ids=input_ids, attention_mask=attention_mask)
         return outputs.last_hidden_state[:, 0, :]  # Take the [CLS] token representation
 
-def inference_test(epoch, test_new_model, certitude):
+def inference_test(dataset, epoch, test_new_model, certitude):
     if test_new_model:
         print("Testing the fine-tuned model...")
         # Set up the Siamese network and the dataset
@@ -154,6 +154,11 @@ def inference_test(epoch, test_new_model, certitude):
         file.write(str(epoch) + "\t" + str(x_score) + "\n")
 
 
+def specific_epoch(epoch):
+    dataset = read_dataset("hats_test.txt")
+    inference_test(dataset, epoch, test_new_model=False, cert_X=1)
+
+
 if __name__ == '__main__':
     print("Reading dataset...")
     dataset = read_dataset("hats_test.txt")
@@ -165,6 +170,7 @@ if __name__ == '__main__':
 
     test_new_model = True # test if we use the fine-tuned model or the large one
 
-    for epoch in range(17): # ckpt epoch saved
-        inference_test(epoch, test_new_model, cert_X)
+    for epoch in range(5): # ckpt epoch saved
+        print(epoch)
+        inference_test(dataset, epoch, test_new_model, cert_X)
         
