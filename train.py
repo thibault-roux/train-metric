@@ -9,7 +9,7 @@ import progressbar
 from sklearn.metrics import accuracy_score
 import os
 
-import test_espoir
+import test
 
 tokenizer = CamembertTokenizer.from_pretrained('dangvantuan/sentence-camembert-large')
 
@@ -224,7 +224,7 @@ for epoch in range(num_epochs):
     with open("results/accuracy.txt", "a", encoding="utf8") as file:
         file.write(str(epoch) + "\t" + str(accuracy) + "\n")
     
-    test_espoir.specific_epoch(epoch) # test the fine-tuned model on HATS
+    test.specific_epoch(epoch) # test the fine-tuned model on HATS
 
     if accuracy > best_accuracy:
         best_accuracy = accuracy
