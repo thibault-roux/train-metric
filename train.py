@@ -1,76 +1,22 @@
+from transformers import CamembertTokenizer
+from torch.utils.data import Dataset
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, Dataset
-from sentence_transformers import SentenceTransformer
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
-import numpy as np
+from transformers import CamembertModel
+from torch.utils.data import DataLoader
+from torch.optim import Adam
 import progressbar
+from sklearn.metrics import accuracy_score
+import os
 
-from transformers import CamembertTokenizer, CamembertModel
+import test_espoir
 
-# myenv2
+tokenizer = CamembertTokenizer.from_pretrained('dangvantuan/sentence-camembert-large')
 
-# Define the Siamese network
-class SiameseNetwork(nn.Module):
-    def __init__(self, model_name):
-        super(SiameseNetwork, self).__init__()
-        self.tokenizer = CamembertTokenizer.from_pretrained(model_name)
-        self.model = CamembertModel.from_pretrained(model_name)
-        transformer_output_dim = self.model.config.hidden_size
-
-        self.model.train()
-
-        self.fc = nn.Sequential(
-            nn.Linear(3 * transformer_output_dim, 128),
-            nn.ReLU(),
-            nn.Linear(128, 1),
-        )
-
-    def mean_pooling(self, model_output, attention_mask):
-        token_embeddings = model_output.last_hidden_state  # Last layer hidden states
-        input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
-        return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
-
-    def forward(self, ref, hyp_a, hyp_b):
-        # Tokenize sentences
-        encoded_input_ref = self.tokenizer(ref, padding=True, truncation=True, return_tensors='pt')
-        encoded_input_hyp_a = self.tokenizer(hyp_a, padding=True, truncation=True, return_tensors='pt')
-        encoded_input_hyp_b = self.tokenizer(hyp_b, padding=True, truncation=True, return_tensors='pt')
-        
-        self.model.train()
-
-        for param in self.model.parameters():
-            param.requires_grad = True
-
-        # Compute token embeddings
-        with torch.no_grad():
-            model_output_ref = self.model(**encoded_input_ref)
-            model_output_hyp_a = self.model(**encoded_input_hyp_a)
-            model_output_hyp_b = self.model(**encoded_input_hyp_b)
-
-        # Perform pooling
-        ref_embedding = self.mean_pooling(model_output_ref, encoded_input_ref['attention_mask'])
-        hyp_a_embedding = self.mean_pooling(model_output_hyp_a, encoded_input_hyp_a['attention_mask'])
-        hyp_b_embedding = self.mean_pooling(model_output_hyp_b, encoded_input_hyp_b['attention_mask'])
-
-
-        concatenated = torch.cat([ref_embedding, hyp_a_embedding, hyp_b_embedding], dim=1)
-        output = self.fc(concatenated)
-
-        return output
-
-    def save_embedding(self, path):
-        print("Saving in ", path)
-        self.model.save_pretrained(path)
-        print("Saved")
-
-
-def read_hats():
+def read_hats(namefile):
     # dataset = [{"reference": ref, "hypA": hypA, "nbrA": nbrA, "hypB": hypB, "nbrB": nbrB}, ...]
     dataset = []
-    with open("datasets/hats_annotation.txt", "r", encoding="utf8") as file:
+    with open(namefile, "r", encoding="utf8") as file:
         next(file)
         for line in file:
             line = line[:-1].split("\t")
@@ -78,118 +24,213 @@ def read_hats():
             dictionary["ref"] = line[0]
             dictionary["hypA"] = line[1]
             dictionary["hypB"] = line[2]
-            dictionary["annotation"] = float(line[3])
+            annotation = float(line[3])
+            if annotation == 0.0: # nbrA < nbrB | i.e hypB is the best
+                dictionary["annotation"] = -1.0
+            elif annotation == 1.0: # nbrA > nbrB | i.e hypA is the best
+                dictionary["annotation"] = 1.0
+            elif annotation == 0.5:
+                # dictionary["annotation"] = [0.5]
+                continue
+            else:
+                raise Exception("annotation is not 0.0, 0.5 or 1.0")
             dataset.append(dictionary)
     return dataset
 
-# Custom dataset class
+
 class HATSDataset(Dataset):
-    def __init__(self, dataset):
-        self.dataset = dataset
+    def __init__(self, dataset, tokenizer, max_length):
+        self.refs = []
+        self.hypsA = []
+        self.hypsB = []
+        self.labels = []
+        for item in dataset:
+            self.refs.append(item['ref'])
+            self.hypsA.append(item['hypA'])
+            self.hypsB.append(item['hypB'])
+            self.labels.append(item['annotation'])
+
+        self.tokenizer = tokenizer
+        self.max_length = max_length
+
     def __len__(self):
-        return len(self.dataset)
+        return len(self.refs)
 
-    def __getitem__(self, index):
-        item = self.dataset[index]
-        ref = item['ref']
-        hyp_a = item['hypA']
-        hyp_b = item['hypB']
-        annotation = item['annotation']
+    def __getitem__(self, idx):
+        encoding1 = self.tokenizer(
+            self.refs[idx],
+            padding='max_length',  # Pad to the maximum length in the batch
+            truncation=True,
+            max_length=self.max_length,
+            return_tensors="pt"
+        )
+        encoding2 = self.tokenizer(
+            self.hypsA[idx],
+            padding='max_length',  # Pad to the maximum length in the batch
+            truncation=True,
+            max_length=self.max_length,
+            return_tensors="pt"
+        )
+        encoding3 = self.tokenizer(
+            self.hypsB[idx],
+            padding='max_length',  # Pad to the maximum length in the batch
+            truncation=True,
+            max_length=self.max_length,
+            return_tensors="pt"
+        )
+        return ({
+            "input_ids1": encoding1["input_ids"].flatten(),
+            "attention_mask1": encoding1["attention_mask"].flatten(),
+            "input_ids2": encoding2["input_ids"].flatten(),
+            "attention_mask2": encoding2["attention_mask"].flatten(),
+            "input_ids3": encoding3["input_ids"].flatten(),
+            "attention_mask3": encoding3["attention_mask"].flatten(),
+            "label": torch.tensor(self.labels[idx], dtype=torch.float)
+        })
 
-        return ref, hyp_a, hyp_b, annotation
 
-# Function to train the Siamese network
-def train():
-    siamese_network = SiameseNetwork('dangvantuan/sentence-camembert-large')
+class SiameseNetwork(nn.Module):
+    def __init__(self, pretrained_model_name, max_length):
+        super(SiameseNetwork, self).__init__()
+
+        # CamemBERT model
+        self.camembert = CamembertModel.from_pretrained(pretrained_model_name)
 
 
+    def forward(self, input_ids, attention_mask):
+        outputs = self.camembert(input_ids=input_ids, attention_mask=attention_mask)
 
-    # # Check if CamembertModel parameters are in SiameseNetwork parameters
-    # auto_model_params = set(siamese_network.model.named_parameters())
-    # siamese_network_params = set(siamese_network.named_parameters())
+        return outputs.last_hidden_state[:, 0, :]  # Take the [CLS] token representation
 
-    # auto_model_params_names = {name for name, _ in auto_model_params}
-    # siamese_network_params_names = {name for name, _ in siamese_network_params}
+class SiameseNetworkWithMarginLoss(nn.Module):
+    def __init__(self, siamese_network):
+        super(SiameseNetworkWithMarginLoss, self).__init__()
+        self.siamese_network = siamese_network
+        self.margin_loss = nn.MarginRankingLoss(margin=0) # margin=0.5
 
-    # # Check if all CamembertModel parameter names are in SiameseNetwork parameter names
-    # auto_model_params_in_siamese_network = auto_model_params_names.issubset(siamese_network_params_names)
+    def forward(self, input_ids1, attention_mask1, input_ids2, attention_mask2, input_ids3, attention_mask3, label):
+        output1 = self.siamese_network(input_ids1, attention_mask1)
+        output2 = self.siamese_network(input_ids2, attention_mask2)
+        output3 = self.siamese_network(input_ids3, attention_mask3)
 
-    # print(auto_model_params_names)
-    # print(siamese_network_params_names)
-    # print(f"CamembertModel parameters in SiameseNetwork parameters: {auto_model_params_in_siamese_network}")
-    # exit()
+        # compute cosine similarity between output1 and output2, and between output1 and output3
+        similarity_2 = nn.functional.cosine_similarity(output1, output2) # ref and hypA
+        similarity_3 = nn.functional.cosine_similarity(output1, output3) # ref and hypB
 
-    criterion = nn.BCEWithLogitsLoss()  # Binary cross-entropy loss for binary classification
-    optimizer = torch.optim.Adam(
-        params=list(siamese_network.model.parameters()) + list(siamese_network.fc.parameters()),
-        lr=0.999) # lr=0.001
+        loss = self.margin_loss(similarity_2, similarity_3, label)
 
-    # Split the dataset into train and validation sets
-    train_dataset, val_dataset = train_test_split(read_hats(), test_size=0.2, random_state=42)
+        return loss
 
-    train_loader = DataLoader(HATSDataset(train_dataset), batch_size=32, shuffle=True)
-    val_loader = DataLoader(HATSDataset(val_dataset), batch_size=32, shuffle=False)
 
-    # Training loop
-    num_epochs = 1
-    for epoch in range(num_epochs):
-        print(epoch)
-        siamese_network.train()
-        # Training progressbar
-        bar = progressbar.ProgressBar(maxval=len(train_loader))
-        bar.start()
-        for i, batch in enumerate(train_loader):
-            if i > 1:
-                break
-            # for batch in train_loader:
-            ref, hyp_a, hyp_b, annotation = batch
-            optimizer.zero_grad()
-            output = siamese_network(ref, hyp_a, hyp_b)
-            loss = criterion(output, annotation.float().view(-1, 1))
-            loss.backward()
+def evaluate_siamese_network(siamese_network, dataloader):
+    siamese_network.eval()
+    all_predictions = []
+    all_labels = []
 
-            # optimizer.step()
-
-            for name, param in siamese_network.named_parameters():
-                if param.requires_grad:
-                    old = param.data.clone()
-                    optimizer.step() # not supposed to be there
-                    
-                    # check if the weights have changed
-                    if not torch.equal(old.data, param.data):
-                        print(f'Gradient: {param.grad}')
-                        print(f'Before: {old.data}')
-                        print("Weights have changed")
-                        print(f'After: {param.data}')
-                        print(name)
-                        print("---")
-                        input()
+    with torch.no_grad():
+        # progressbar 
+        bar = progressbar.ProgressBar(max_value=len(dataloader))
+        # for batch in dataloader:
+        for i, batch in enumerate(dataloader):
             bar.update(i)
-            print("End")
-            input()
-            
-        # Validation
-        siamese_network.eval()
-        val_outputs = []
-        val_labels = []
-        with torch.no_grad():
-            for batch in val_loader:
-                ref, hyp_a, hyp_b, annotation = batch
-                output = siamese_network(ref, hyp_a, hyp_b)
-                val_outputs.extend(output.cpu().numpy())
-                val_labels.extend(annotation.numpy())
+            input_ids1 = batch["input_ids1"]
+            attention_mask1 = batch["attention_mask1"]
+            input_ids2 = batch["input_ids2"]
+            attention_mask2 = batch["attention_mask2"]
+            input_ids3 = batch["input_ids3"]
+            attention_mask3 = batch["attention_mask3"]
+            labels = batch["label"]
 
-        val_outputs = torch.sigmoid(torch.tensor(val_outputs)).numpy()
-        val_preds = (val_outputs > 0.5).astype(int)
-        val_labels_binary = (np.array(val_labels) > 0.5).astype(int)
-        val_accuracy = accuracy_score(val_labels_binary, val_preds)
-        print(f'Epoch {epoch + 1}/{num_epochs}, Loss: {loss.item()}, Val Accuracy: {val_accuracy}')
+            output1 = siamese_network(input_ids1, attention_mask1)
+            output2 = siamese_network(input_ids2, attention_mask2)
+            output3 = siamese_network(input_ids3, attention_mask3)
 
-    # Save the trained model if needed
-    # siamese_network.save_pretrained('models/siamese_network2.pth')
-    siamese_network.save_embedding('./models/camembertmodel.pth')
+            similarity_2 = nn.functional.cosine_similarity(output1, output2)
+            similarity_3 = nn.functional.cosine_similarity(output1, output3)
+            predictions = (similarity_2 > similarity_3).float()
+            # convert predictions 0. to -1
+            for i, prediction in enumerate(predictions):
+                if prediction == 0.0:
+                    predictions[i] = -1.0
 
-if __name__ == '__main__':
-    print("Lauching train.py")
-    train()
+            all_predictions.extend(predictions.cpu().numpy())
+            all_labels.extend(labels.cpu().numpy())
 
+
+    accuracy = accuracy_score(all_labels, all_predictions)
+    return accuracy
+
+
+# set dataset
+max_length = 30
+hats_train = read_hats("datasets/hats_annotation_train.txt")
+hats_test = read_hats("datasets/hats_annotation_test.txt")
+hats_dataset_train = HATSDataset(hats_train, tokenizer, max_length)
+hats_dataset_test = HATSDataset(hats_test, tokenizer, max_length)
+
+# Set up the Siamese network and the dataset
+pretrained_model_name = 'dangvantuan/sentence-camembert-large'
+siamese_network = SiameseNetwork(pretrained_model_name, max_length)
+# Load the last saved pretrained model if available
+saved_model_path = 'models/large/fine_tuned_camembert_hats_model.pth'
+if os.path.exists(saved_model_path):
+    siamese_network.load_state_dict(torch.load(saved_model_path))
+    print(f"Loaded pretrained model from {saved_model_path}")
+siamese_with_margin_loss = SiameseNetworkWithMarginLoss(siamese_network)
+
+
+# Set up data loader for training
+batch_size = 32
+dataloader = DataLoader(hats_dataset_train, batch_size=batch_size, shuffle=True)
+
+# Set up data loader for evaluation
+eval_dataloader = DataLoader(hats_dataset_test, batch_size=batch_size, shuffle=False)
+
+# Set up optimizer
+optimizer = Adam(siamese_with_margin_loss.parameters(), lr=1e-5)
+
+# Training loop
+num_epochs = 25
+losses = []
+best_accuracy = 0
+for epoch in range(num_epochs):
+    print(epoch)
+    bar = progressbar.ProgressBar(max_value=len(dataloader))
+    for i, batch in enumerate(dataloader):
+        bar.update(i)
+
+        input_ids1 = batch["input_ids1"]
+        attention_mask1 = batch["attention_mask1"]
+        input_ids2 = batch["input_ids2"]
+        attention_mask2 = batch["attention_mask2"]
+        input_ids3 = batch["input_ids3"]
+        attention_mask3 = batch["attention_mask3"]
+        labels = batch["label"]
+
+        optimizer.zero_grad()
+        loss = siamese_with_margin_loss(input_ids1, attention_mask1, input_ids2, attention_mask2, input_ids3, attention_mask3, labels)
+        loss.backward()
+        losses.append(loss.item())
+        # print(loss.item())
+        optimizer.step()
+
+    # Save the fine-tuned model
+    torch.save(siamese_network.state_dict(), saved_model_path + f".{epoch}")
+
+    # Evaluation
+    accuracy = evaluate_siamese_network(siamese_network, eval_dataloader)
+    print(f"Epoch {epoch + 1}/{num_epochs}, Accuracy: {accuracy:.4f}")
+    # write it in results/accuracy.txt
+    with open("results/accuracy.txt", "a", encoding="utf8") as file:
+        file.write(str(epoch) + "\t" + str(accuracy) + "\n")
+    
+    test_espoir.specific_epoch(epoch) # test the fine-tuned model on HATS
+
+    if accuracy > best_accuracy:
+        best_accuracy = accuracy
+        torch.save(siamese_network.state_dict(), saved_model_path)
+
+print("losses:", losses)
+
+# Save the fine-tuned model
+# siamese_network.save_pretrained('fine_tuned_camembert_hats_model')
