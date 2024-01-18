@@ -176,6 +176,8 @@ saved_model_path = 'models/large/fine_tuned_camembert_hats_model.pth'
 if os.path.exists(saved_model_path):
     siamese_network.load_state_dict(torch.load(saved_model_path))
     print(f"Loaded pretrained model from {saved_model_path}")
+else:
+    print(f"Pretrained model not found at {saved_model_path}. Training from scratch.")
 siamese_with_margin_loss = SiameseNetworkWithMarginLoss(siamese_network)
 
 

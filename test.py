@@ -156,7 +156,7 @@ def inference_test(dataset, epoch, test_new_model, certitude):
 
 def specific_epoch(epoch):
     dataset = read_dataset("hats_test.txt")
-    inference_test(dataset, epoch, test_new_model=False, certitude=1)
+    inference_test(dataset, epoch, test_new_model=True, certitude=1)
 
 
 if __name__ == '__main__':
@@ -170,7 +170,7 @@ if __name__ == '__main__':
 
     test_new_model = True # test if we use the fine-tuned model or the large one
 
-    for epoch in range(5): # ckpt epoch saved
+    for epoch in range(7): # ckpt epoch saved
         print(epoch)
         inference_test(dataset, epoch, test_new_model, cert_X)
         
