@@ -168,9 +168,11 @@ if __name__ == '__main__':
     # useful for the metric but we do not need to recompute every time
     print("Importing...")
 
-    test_new_model = True # test if we use the fine-tuned model or the large one
+    test_new_model = False # test if we use the fine-tuned model or the large one
 
-    for epoch in range(7): # ckpt epoch saved
-        print(epoch)
-        inference_test(dataset, epoch, test_new_model, cert_X)
-        
+    if test_new_model:
+        for epoch in range(7): # ckpt epoch saved
+            print(epoch)
+            inference_test(dataset, epoch, test_new_model, cert_X)
+    else:
+        inference_test(dataset, 0, test_new_model, cert_X)
