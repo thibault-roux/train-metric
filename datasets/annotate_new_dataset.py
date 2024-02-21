@@ -2,6 +2,7 @@ import jiwer
 import epitran
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
+import progressbar
 
 
 def read_new_dataset(namefile):
@@ -69,7 +70,9 @@ if __name__ == "__main__":
     # wer, semdist, cer, phoner
     weights = [0.7, 5, 5, 5]
     with open("extended_hats_annotation.txt", "w", encoding="utf8") as f:
+        bar = progressbar.ProgressBar(maxval=len(refs))
         for i in range(len(refs)):
+            bar.update(i)
             scoreA = weighted_score(refs[i], hypsA[i], model, ep, weights)
             scoreB = weighted_score(refs[i], hypsB[i], model, ep, weights)
 
