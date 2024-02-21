@@ -27,7 +27,7 @@ def semdist(ref, hyp, model):
     ref_projection = model.encode(ref).reshape(1, -1)
     hyp_projection = model.encode(hyp).reshape(1, -1)
     score = cosine_similarity(ref_projection, hyp_projection)[0][0]
-    score = (1-score)*100 # lower is better
+    score = (1-score) # lower is better
     return score
 
 
@@ -49,20 +49,14 @@ def weighted_score(ref, hyp, model, ep, weights):
     cer_score = cer(ref, hyp)
     phoner_score = phoner(ref, hyp, ep)
     score = weights[0]*wer_score + weights[1]*semdist_score + weights[2]*cer_score + weights[3]*phoner_score
-    print(ref)
-    print(hyp)
-    print("wer:", wer_score)
-    print("semdist:", semdist_score)
-    print("cer:", cer_score)
-    print("phoner:", phoner_score)
-    print("score:", score)
-    print()
     return score
 
 
 
 if __name__ == "__main__":
     refs, hypsA, hypsB = read_new_dataset("new_dataset.txt")
+
+    print("Loading models...")
 
     # phoner
     lang_code = 'fra-Latn-p'
@@ -71,10 +65,20 @@ if __name__ == "__main__":
     # semdist
     model = SentenceTransformer('dangvantuan/sentence-camembert-large')
 
+    print("Computing scores and writing results...")
     # wer, semdist, cer, phoner
-    weights = [0.7, 0.05, 5, 5]
+    weights = [0.7, 5, 5, 5]
+    with open("extended_hats_annotation.txt", "w", encoding="utf8") as f:
+        for i in range(len(refs)):
+            scoreA = weighted_score(refs[i], hypsA[i], model, ep, weights)
+            scoreB = weighted_score(refs[i], hypsB[i], model, ep, weights)
 
-    for i in range(len(refs)):
-        scoreA = weighted_score(refs[i], hypsA[i], model, ep, weights)
-        scoreB = weighted_score(refs[i], hypsB[i], model, ep, weights)
-        input()
+            # 1 means that A is the best, 0 means that B is the best
+            if scoreA < scoreB: # if A is better
+                txt = refs[i] + "\t" + hypsA[i] + "\t" + hypsB[i] + "\t1\n"
+            elif scoreA > scoreB:
+                txt = refs[i] + "\t" + hypsA[i] + "\t" + hypsB[i] + "\t0\n"
+            else:
+                txt = refs[i] + "\t" + hypsA[i] + "\t" + hypsB[i] + "\t0.5\n"
+            f.write(txt)
+    print("Done!")
