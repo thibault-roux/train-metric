@@ -9,11 +9,17 @@ def read_new_dataset(namefile):
         refs = []
         hypsA = []
         hypsB = []
+        err = 0
         for line in f:
-            ref, hypA, hypB = line.strip().split("\t")
+            try:
+                ref, hypA, hypB = line.strip().split("\t")
+            except ValueError:
+                err += 1
+                continue
             refs.append(ref)
             hypsA.append(hypA)
             hypsB.append(hypB)
+    print("skipped:", err)
     return refs, hypsA, hypsB
 
 
@@ -43,12 +49,20 @@ def weighted_score(ref, hyp, model, ep, weights):
     cer_score = cer(ref, hyp)
     phoner_score = phoner(ref, hyp, ep)
     score = weights[0]*wer_score + weights[1]*semdist_score + weights[2]*cer_score + weights[3]*phoner_score
+    print(ref)
+    print(hyp)
+    print("wer:", wer_score)
+    print("semdist:", semdist_score)
+    print("cer:", cer_score)
+    print("phoner:", phoner_score)
+    print("score:", score)
+    print()
     return score
 
 
 
 if __name__ == "__main__":
-    refs, hypsA, hypsB = read_new_dataset("datasets/new_dataset.txt")
+    refs, hypsA, hypsB = read_new_dataset("new_dataset.txt")
 
     # phoner
     lang_code = 'fra-Latn-p'
@@ -63,6 +77,4 @@ if __name__ == "__main__":
     for i in range(len(refs)):
         scoreA = weighted_score(refs[i], hypsA[i], model, ep, weights)
         scoreB = weighted_score(refs[i], hypsB[i], model, ep, weights)
-        print(scoreA)
-        print(scoreB)
         input()
