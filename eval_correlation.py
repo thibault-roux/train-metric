@@ -84,7 +84,7 @@ if __name__ == "__main__":
 
     # choice of metrics
     names = ["wer", "semdist", "cer", "phoner"]
-    metric = [wer, semdist, cer, phoner]
+    metrics = [wer, semdist, cer, phoner]
     memories = [0] * len(names)
 
 
@@ -105,9 +105,17 @@ if __name__ == "__main__":
 
     # getting scores
     all_scores = dict()
-    for name, metric, memory in zip(names, metric, memories):
+    for name, metric, memory in zip(names, metrics, memories):
         all_scores[name] = get_scores(metric, name, hats, memory)
 
+    # change format to a dictionary of list
+    all_scores_lists = {name: list(all_scores[name].values()) for name in names}
 
     # compute inter-correlations
-    # import 
+    from scipy import stats
+
+    for name1 in names:
+        for name2 in names:
+            corr = stats.spearmanr(all_scores_lists[name1], all_scores_lists[name2])
+            print(name1, name2, corr)
+            input()
