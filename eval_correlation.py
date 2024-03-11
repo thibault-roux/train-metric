@@ -105,8 +105,9 @@ if __name__ == "__main__":
 
     # getting scores
     all_scores = dict()
-    for name, metric in zip(names, metric):
+    for name, metric, memory in zip(names, metric, memories):
         all_scores[name] = get_scores(metric, name, hats, memory)
 
 
     # compute inter-correlations
+    # import 
