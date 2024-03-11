@@ -23,14 +23,14 @@ def read_dataset(dataname):
     return dataset
 
 
-def save_scores(metric, name, hats):
+def save_scores(metric, name, hats, memory):
     scores = dict()
     for d in hats:
         ref = d["reference"]
         hypA = d["hypA"]
         hypB = d["hypB"]
-        scoreA = metric(ref, hypA)
-        scoreB = metric(ref, hypB)
+        scoreA = metric(ref, hypA, memory)
+        scoreB = metric(ref, hypB, memory)
         scores["reference", "hypA"] = scoreA
         scores["reference", "hypB"] = scoreB
     with open("results/scores/" + name + ".txt", "w", "utf8") as f:
@@ -41,11 +41,11 @@ def save_scores(metric, name, hats):
 def scores_computed(name):
     return os.path.isfile("results/scores/" + name + ".txt")
 
-def get_scores(metric, name, hats):
+def get_scores(metric, name, hats, memory):
     # check if file exists
     if not scores_computed(name):
         print("Computing scores for", name, "...")
-        return save_scores(metric, name, hats)
+        return save_scores(metric, name, hats, memory)
     else:
         print("Reading scores for", name, "...")
         scores = dict()
@@ -81,8 +81,11 @@ def phoner(ref, hyp, memory):
 
 if __name__ == "__main__":
     hats = read_dataset("hats.txt")
+
+    # choice of metrics
     names = ["wer", "semdist", "cer", "phoner"]
     metric = [wer, semdist, cer, phoner]
+    memories = [0] * len(names)
 
 
     if "phoner" in names and not scores_computed("phoner"):
@@ -90,15 +93,20 @@ if __name__ == "__main__":
         import epitran
         lang_code = 'fra-Latn-p'
         memory = epitran.Epitran(lang_code)
+        memories[names.index("phoner")] = memory
     elif "semdist" in names and not scores_computed("semdist"):
         from sentence_transformers import SentenceTransformer
         from sklearn.metrics.pairwise import cosine_similarity
         # SD_sentence_camembert_large
-        model = SentenceTransformer('dangvantuan/sentence-camembert-large')
+        memory = SentenceTransformer('dangvantuan/sentence-camembert-large')
+        memories[names.index("semdist")] = memory
     elif "wer" in names and not scores_computed("wer") or "cer" in names and not scores_computed("cer"):
         import jiwer
 
+    # getting scores
     all_scores = dict()
     for name, metric in zip(names, metric):
-        all_scores[name] = get_scores(metric, name, hats)
-        
+        all_scores[name] = get_scores(metric, name, hats, memory)
+
+
+    # compute inter-correlations
