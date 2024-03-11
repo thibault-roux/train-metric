@@ -38,9 +38,12 @@ def save_scores(metric, name, hats):
             f.write(refhyp[0] + "\t" + refhyp[1] + "\t" + str(hyp) + "\n")
     return scores
 
+def scores_computed(name):
+    return os.path.isfile("results/scores/" + name + ".txt")
+
 def get_scores(metric, name, hats):
     # check if file exists
-    if not os.path.isfile("results/scores/" + name + ".txt"):
+    if not scores_computed(name):
         print("Computing scores for", name, "...")
         return save_scores(metric, name, hats)
     else:
@@ -58,7 +61,7 @@ def semdist(ref, hyp, memory):
     ref_projection = model.encode(ref).reshape(1, -1)
     hyp_projection = model.encode(hyp).reshape(1, -1)
     score = cosine_similarity(ref_projection, hyp_projection)[0][0]
-    score = (1-score)*100 # lower is better
+    score = (1-score) # lower is better
     return score
 
 
@@ -81,3 +84,21 @@ if __name__ == "__main__":
     names = ["wer", "semdist", "cer", "phoner"]
     metric = [wer, semdist, cer, phoner]
 
+
+    if "phoner" in names and not scores_computed("phoner"):
+        import jiwer
+        import epitran
+        lang_code = 'fra-Latn-p'
+        memory = epitran.Epitran(lang_code)
+    elif "semdist" in names and not scores_computed("semdist"):
+        from sentence_transformers import SentenceTransformer
+        from sklearn.metrics.pairwise import cosine_similarity
+        # SD_sentence_camembert_large
+        model = SentenceTransformer('dangvantuan/sentence-camembert-large')
+    elif "wer" in names and not scores_computed("wer") or "cer" in names and not scores_computed("cer"):
+        import jiwer
+
+    all_scores = dict()
+    for name, metric in zip(names, metric):
+        all_scores[name] = get_scores(metric, name, hats)
+        
