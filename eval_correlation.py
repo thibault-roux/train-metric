@@ -1,5 +1,7 @@
 import os
-
+import torch.nn as nn
+import torch
+from transformers import AutoTokenizer, AutoModel
 
 # each metric compute scores for each pair of hypotheses and reference from HATS
 # then it compute a correlation between all these metrics
@@ -32,6 +34,27 @@ def load_model(epoch=0):
         exit(-1)
     model = siamese_network.camembert
     return model
+
+def mean_pooling(model_output, attention_mask):
+    token_embeddings = model_output[0] #First element of model_output contains all token embeddings
+    input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+    sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, 1)
+    sum_mask = torch.clamp(input_mask_expanded.sum(1), min=1e-9)
+    return sum_embeddings / sum_mask
+
+def inference_semdist2(text, memory):
+    tokenizer, model = memory
+    encoded_input = tokenizer(text, padding=True, truncation=True, max_length=128, return_tensors='pt')
+    with torch.no_grad():
+        model_output = model(**encoded_input)
+    sentence_embeddings = mean_pooling(model_output, encoded_input['attention_mask'])
+    return sentence_embeddings
+
+def semdist2(ref, hyp, memory):
+    ref_projection = inference_semdist2(ref, memory).reshape(1, -1)
+    hyp_projection = inference_semdist2(hyp, memory).reshape(1, -1)
+    score = cosine_similarity(ref_projection, hyp_projection)[0][0]
+    return (1-score)*100 # lower is better
 
 # ----------------- end fine-tuned -----------------
 
@@ -114,8 +137,8 @@ if __name__ == "__main__":
     hats = read_dataset("hats.txt")
 
     # choice of metrics
-    names = ["wer", "semdist", "cer", "phoner", "semdist_trained_0"]
-    metrics = [wer, semdist, cer, phoner, semdist]
+    names = ["wer", "semdist_trained_0", "cer", "phoner"] # semdist
+    metrics = [wer, semdist2, cer, phoner] # semdist
     memories = [0] * len(names)
 
 
@@ -136,6 +159,10 @@ if __name__ == "__main__":
     if "semdist_trained_0" in names and not scores_computed("semdist_trained_0"):
         from sentence_transformers import SentenceTransformer
         from sklearn.metrics.pairwise import cosine_similarity
+        model = load_model(epoch=0)
+        tokenizer = AutoTokenizer.from_pretrained('dangvantuan/sentence-camembert-large') # large
+        memory = (tokenizer, model)
+        memories[names.index("semdist_trained_0")] = memory
 
 
 
