@@ -117,12 +117,11 @@ if __name__ == "__main__":
     txt = ","
     for name in names:
         txt += name + ","
-    txt = txt[:-1]
     for name1 in names:
         txt = txt[:-1] + "\n" + name1 + ","
         for name2 in names:
             corr = stats.spearmanr(all_scores_lists[name1], all_scores_lists[name2])
             print(name1, name2, corr[0])
             txt += str(corr[0]) + ","
-    with open("results/correlations.txt", "w", encoding="utf8") as f:
+    with open("results/inter-correlations.txt", "w", encoding="utf8") as f:
         f.write(txt)
