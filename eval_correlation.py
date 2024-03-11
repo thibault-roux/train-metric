@@ -6,6 +6,37 @@ import os
 
 
 
+# ----------------- begin fine-tuned -----------------
+
+class SiameseNetwork(nn.Module):
+    def __init__(self, pretrained_model_name, max_length):
+        super(SiameseNetwork, self).__init__()
+        # CamemBERT model
+        self.camembert = AutoModel.from_pretrained(pretrained_model_name)
+
+    def forward(self, input_ids, attention_mask):
+        outputs = self.camembert(input_ids=input_ids, attention_mask=attention_mask)
+        return outputs.last_hidden_state[:, 0, :]  # Take the [CLS] token representation
+
+def load_model(epoch=0):
+    pretrained_model_name = 'dangvantuan/sentence-camembert-large'
+    max_length = 30
+    siamese_network = SiameseNetwork(pretrained_model_name, max_length)
+    # Load the last saved pretrained model if available
+    saved_model_path = 'models/large/fine_tuned_camembert_hats_model.pth.' + str(epoch)
+    if os.path.exists(saved_model_path):
+        siamese_network.load_state_dict(torch.load(saved_model_path))
+        print(f"Loaded pretrained model from {saved_model_path}")
+    else:
+        print(f"Model {saved_model_path} not found")
+        exit(-1)
+    model = siamese_network.camembert
+    return model
+
+# ----------------- end fine-tuned -----------------
+
+
+
 def read_dataset(dataname):
     # dataset = [{"reference": ref, "hypA": hypA, "nbrA": nbrA, "hypB": hypB, "nbrB": nbrB}, ...]
     dataset = []
@@ -83,8 +114,8 @@ if __name__ == "__main__":
     hats = read_dataset("hats.txt")
 
     # choice of metrics
-    names = ["wer", "semdist", "cer", "phoner"]
-    metrics = [wer, semdist, cer, phoner]
+    names = ["wer", "semdist", "cer", "phoner", "semdist_trained_0"]
+    metrics = [wer, semdist, cer, phoner, semdist]
     memories = [0] * len(names)
 
 
@@ -102,6 +133,12 @@ if __name__ == "__main__":
         memories[names.index("semdist")] = memory
     if "wer" in names and not scores_computed("wer") or "cer" in names and not scores_computed("cer"):
         import jiwer
+    if "semdist_trained_0" in names and not scores_computed("semdist_trained_0"):
+        from sentence_transformers import SentenceTransformer
+        from sklearn.metrics.pairwise import cosine_similarity
+
+
+
 
     # getting scores
     all_scores = dict()
