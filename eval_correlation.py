@@ -33,9 +33,9 @@ def save_scores(metric, name, hats, memory):
         scoreB = metric(ref, hypB, memory)
         scores["reference", "hypA"] = scoreA
         scores["reference", "hypB"] = scoreB
-    with open("results/scores/" + name + ".txt", "w", "utf8") as f:
-        for refhyp, hyp in scores.items():
-            f.write(refhyp[0] + "\t" + refhyp[1] + "\t" + str(hyp) + "\n")
+    with open("results/scores/" + name + ".txt", "w", encoding="utf8") as f:
+        for refhyp, score in scores.items():
+            f.write(refhyp[0] + "\t" + refhyp[1] + "\t" + str(score) + "\n")
     return scores
 
 def scores_computed(name):
@@ -49,7 +49,7 @@ def get_scores(metric, name, hats, memory):
     else:
         print("Reading scores for", name, "...")
         scores = dict()
-        with open("results/scores/" + name + ".txt", "r", "utf8") as f:
+        with open("results/scores/" + name + ".txt", "r", encoding="utf8") as f:
             for line in f:
                 line = line[:-1].split("\t")
                 scores[line[0], line[1]] = float(line[2])
@@ -94,13 +94,13 @@ if __name__ == "__main__":
         lang_code = 'fra-Latn-p'
         memory = epitran.Epitran(lang_code)
         memories[names.index("phoner")] = memory
-    elif "semdist" in names and not scores_computed("semdist"):
+    if "semdist" in names and not scores_computed("semdist"):
         from sentence_transformers import SentenceTransformer
         from sklearn.metrics.pairwise import cosine_similarity
         # SD_sentence_camembert_large
         memory = SentenceTransformer('dangvantuan/sentence-camembert-large')
         memories[names.index("semdist")] = memory
-    elif "wer" in names and not scores_computed("wer") or "cer" in names and not scores_computed("cer"):
+    if "wer" in names and not scores_computed("wer") or "cer" in names and not scores_computed("cer"):
         import jiwer
 
     # getting scores
