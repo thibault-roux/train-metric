@@ -31,8 +31,8 @@ def save_scores(metric, name, hats, memory):
         hypB = d["hypB"]
         scoreA = metric(ref, hypA, memory)
         scoreB = metric(ref, hypB, memory)
-        scores["reference", "hypA"] = scoreA
-        scores["reference", "hypB"] = scoreB
+        scores[d["reference"], d["hypA"]] = scoreA
+        scores[d["reference"], d["hypB"]] = scoreB
     with open("results/scores/" + name + ".txt", "w", encoding="utf8") as f:
         for refhyp, score in scores.items():
             f.write(refhyp[0] + "\t" + refhyp[1] + "\t" + str(score) + "\n")
