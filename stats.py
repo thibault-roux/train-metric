@@ -76,4 +76,19 @@ if __name__ == "__main__":
     # print(sum_list)
 
     # print the number of occurences of each type of accordance
-    
+    accordances = [str(accordance) for accordance in accordances]
+    accordances_types = list(set(accordances))
+    min = 9999
+    max = -9999
+    occurence_dico = dict()
+    for accordance_type in accordances_types:
+        number_accordance = accordances.count(accordance_type)
+        # print(accordance_type, ":", number_accordance)
+        occurence_dico[number_accordance] = accordance_type
+        if number_accordance < min:
+            min = number_accordance
+        if number_accordance > max:
+            max = number_accordance
+    for i in range(min, max+1):
+        if i in occurence_dico:
+            print(occurence_dico[i], i)
