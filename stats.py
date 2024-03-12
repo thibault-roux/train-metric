@@ -44,10 +44,10 @@ def accordance_human_perception(hats, metricnames, all_scores):
         nbrB = triplet["nbrB"]
         accord = [0] * len(metricnames)
         for i, metricname in enumerate(metricnames):
-            if all_scores[metricname][ref, hypA] < all_scores[metricname][ref, hypB]:
+            if all_scores[metricname][ref, hypA] > all_scores[metricname][ref, hypB]:
                 if nbrA < nbrB:
                     accord[i] = 1
-            elif all_scores[metricname][ref, hypA] > all_scores[metricname][ref, hypB]:
+            elif all_scores[metricname][ref, hypA] < all_scores[metricname][ref, hypB]:
                 if nbrA > nbrB:
                     accord[i] = 1
             else:
@@ -66,7 +66,14 @@ if __name__ == "__main__":
     hats = read_dataset("hats.txt")
 
     accordances = accordance_human_perception(hats, metricnames, all_scores)
-    for accord in accordances:
-        print(accord)
+    
+    # # print the number of times the human perception is in accordance with the scores
+    # sum_list = [0] * len(metricnames)
+    # for i in range(len(accordances)):
+    #     for j in range(len(metricnames)):
+    #         if accordances[i][j] == 1:
+    #             sum_list[j] += 1
+    # print(sum_list)
 
-    print(len(accordances))
+    # print the number of occurences of each type of accordance
+    
