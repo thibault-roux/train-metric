@@ -137,8 +137,8 @@ if __name__ == "__main__":
     hats = read_dataset("hats.txt")
 
     # choice of metrics
-    names = ["wer", "semdist_trained_0", "cer", "phoner"] # semdist
-    metrics = [wer, semdist2, cer, phoner] # semdist
+    names = ["wer", "semdist_trained_0", "cer", "phoner", "semdist"] # "semdist"
+    metrics = [wer, semdist2, cer, phoner, semdist] # semdist
     memories = [0] * len(names)
 
 
@@ -187,5 +187,6 @@ if __name__ == "__main__":
             corr = stats.spearmanr(all_scores_lists[name1], all_scores_lists[name2])
             print(name1, name2, corr[0])
             txt += str(corr[0]) + ","
+
     with open("results/inter-correlations.txt", "w", encoding="utf8") as f:
         f.write(txt)
