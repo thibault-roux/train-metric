@@ -155,24 +155,29 @@ def inference_test(dataset, epoch, test_new_model, certitude):
 
 
 def specific_epoch(epoch):
-    dataset = read_dataset("hats_test.txt")
+    # dataset = read_dataset("hats_test.txt")
+    dataset = read_dataset("hats.txt")
     inference_test(dataset, epoch, test_new_model=True, certitude=1)
 
 
+def eval(test_new_model, cert_X, dataset):
+    if test_new_model:
+        for epoch in range(1): # ckpt epoch saved
+            print(epoch)
+            inference_test(dataset, epoch, test_new_model, cert_X)
+    else:
+        inference_test(dataset, 0, test_new_model, cert_X)
+
 if __name__ == '__main__':
     print("Reading dataset...")
-    dataset = read_dataset("hats_test.txt")
+    # dataset = read_dataset("hats_test.txt")
+    dataset = read_dataset("hats.txt")
 
-    cert_X = 1
+    cert_X = 0 # 0 or 1 or 0.7
 
     # useful for the metric but we do not need to recompute every time
     print("Importing...")
 
     test_new_model = False # test if we use the fine-tuned model or the large one
 
-    if test_new_model:
-        for epoch in range(7): # ckpt epoch saved
-            print(epoch)
-            inference_test(dataset, epoch, test_new_model, cert_X)
-    else:
-        inference_test(dataset, 0, test_new_model, cert_X)
+    eval(test_new_model, cert_X, dataset)
