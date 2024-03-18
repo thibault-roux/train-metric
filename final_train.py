@@ -164,7 +164,7 @@ def evaluate_siamese_network(siamese_network, dataloader):
 
 def train(model_name, train_data):
     if model_name == 'french':
-        pretrained_model_name = 
+        pretrained_model_name = 'dangvantuan/sentence-camembert-large'
     elif model_name == 'multi':
         pretrained_model_name = 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2'
     else:
@@ -241,7 +241,7 @@ if __name__ == "__main__":
     model_names = ['french', 'multi']
     train_datas = ['hats_train', 'hats_extended']
 
-    num_epochs = 1
+    num_epochs = 5
     for model_name in model_names:
         for train_data in train_datas:
             train(model_name, train_data, num_epochs)
