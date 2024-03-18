@@ -150,6 +150,9 @@ def inference_test(dataset, namefile, epoch, model_name, train_data, certitude):
     elif train_data == "none":
         print("Testing the original model...")
         model = AutoModel.from_pretrained(pretrained_model_name)
+    else:
+        print("Train data not recognized:", train_data)
+        exit(-1)
     
     tokenizer = AutoTokenizer.from_pretrained(pretrained_model_name)
     memory = (tokenizer, model)
