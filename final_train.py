@@ -238,8 +238,10 @@ def train(model_name, train_data):
 
 
 if __name__ == "__main__":
-    model_name = 'multi' # 'french'
-    train_data = 'hats_extended' # 'hats_train'
+    model_names = ['french', 'multi']
+    train_datas = ['hats_train', 'hats_extended']
 
     num_epochs = 1
-    train(model_name, train_data, num_epochs)
+    for model_name in model_names:
+        for train_data in train_datas:
+            train(model_name, train_data, num_epochs)
