@@ -124,7 +124,15 @@ class SiameseNetwork(nn.Module):
         outputs = self.camembert(input_ids=input_ids, attention_mask=attention_mask)
         return outputs.last_hidden_state[:, 0, :]  # Take the [CLS] token representation
 
-def inference_test(dataset, namefile, epoch, pretrained_model_name, train_data, certitude)
+def inference_test(dataset, namefile, epoch, model_name, train_data, certitude):
+    if model_name == "multi":
+        pretrained_model_name = 'sentence-transformers/paraphrase-multilingual-MiniLM-L6-v2'
+    elif model_name == "french":
+        pretrained_model_name = 'dangvantuan/sentence-camembert-large'
+    else:
+        print("Model name not recognized:", model_name)
+        exit(-1)
+
     if train_data != "none":
         print("Testing the fine-tuned model...")
         # Set up the Siamese network and the dataset
@@ -168,10 +176,10 @@ def specific_epoch(epoch):
 if __name__ == '__main__':
     namefiles = ["hats_test.txt"] # , "hats.txt"] # for dataset
     epoch = 0
-    pretrained_model_name = 'dangvantuan/sentence-camembert-large'
+    model_name = "multi" # french
     train_data = "none" # "hats_extended" or "hats_train"
     cert_X = 1 # 0 or 1 or 0.7
 
     for namefile in namefiles:
         dataset = read_dataset(namefile)
-        inference_test(dataset=dataset, namefile=namefile, epoch=epoch, pretrained_model_name=pretrained_model_name, train_data=train_data, certitude=cert_X)
+        inference_test(dataset=dataset, namefile=namefile, epoch=epoch, model_name=model_name, train_data=train_data, certitude=cert_X)
