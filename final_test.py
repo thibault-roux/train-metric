@@ -139,7 +139,7 @@ def inference_test(dataset, namefile, epoch, model_name, train_data, certitude):
         max_length = 30
         siamese_network = SiameseNetwork(pretrained_model_name, max_length)
         # Load the last saved pretrained model if available
-        saved_model_path = 'models/' + train_data + '/fine_tuned_camembert_hats_model.pth.' + str(epoch)
+        saved_model_path = 'models/' + model_name + "/" + train_data + '/model.pth.' + str(epoch)
         if os.path.exists(saved_model_path):
             siamese_network.load_state_dict(torch.load(saved_model_path))
             print(f"Loaded pretrained model from {saved_model_path}")
