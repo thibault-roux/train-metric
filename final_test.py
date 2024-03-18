@@ -153,6 +153,8 @@ def inference_test(dataset, namefile, epoch, pretrained_model_name, train_data, 
     print(x_score)
 
     with open("results/final_correlation.txt", "a", encoding="utf8") as file:
+        clean_pretrained_model_name = pretrained_model_name.split("/")[1]
+        txt = namefile + "," + str(epoch) + "," + clean_pretrained_model_name + "," + train_data + "," + str(certitude*100) + "%," + str(x_score) + "\n"
         file.write(str(epoch) + "\t" + str(x_score) + "\n")
 
 
