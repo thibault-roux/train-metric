@@ -162,7 +162,7 @@ def evaluate_siamese_network(siamese_network, dataloader):
 
 
 
-def train(model_name, train_data):
+def train(model_name, train_data, num_epochs):
     if model_name == 'french':
         pretrained_model_name = 'dangvantuan/sentence-camembert-large'
     elif model_name == 'multi':
@@ -190,7 +190,7 @@ def train(model_name, train_data):
     # Set up the Siamese network and the dataset
     siamese_network = SiameseNetwork(pretrained_model_name, max_length)
     # Load the last saved pretrained model if available
-    saved_model_path = 'models/' + model_name + "/" + train_data + '/model.pth
+    saved_model_path = 'models/' + model_name + "/" + train_data + '/model.pth'
     if os.path.exists(saved_model_path):
         siamese_network.load_state_dict(torch.load(saved_model_path))
         print(f"Loaded trained model from local path: {saved_model_path}")
