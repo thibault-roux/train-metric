@@ -185,7 +185,7 @@ if __name__ == '__main__':
 
     for namefile in namefiles:
         dataset = read_dataset(namefile)
-        for epoch in epochs:
+        for epoch in range(epochs):
             for model_name in model_names:
                 for train_data in train_datas:
                     for certitude in certitudes:
