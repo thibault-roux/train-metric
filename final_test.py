@@ -126,7 +126,7 @@ class SiameseNetwork(nn.Module):
 
 def inference_test(dataset, namefile, epoch, model_name, train_data, certitude):
     if model_name == "multi":
-        pretrained_model_name = 'sentence-transformers/paraphrase-multilingual-MiniLM-L6-v2'
+        pretrained_model_name = 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2'
     elif model_name == "french":
         pretrained_model_name = 'dangvantuan/sentence-camembert-large'
     else:
