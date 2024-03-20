@@ -238,10 +238,14 @@ def train(model_name, train_data, num_epochs):
 
 
 if __name__ == "__main__":
-    model_names = ['french', 'multi']
+    model_names = ['french'] #, 'multi']
     train_datas = ['hats_train', 'hats_extended']
 
     num_epochs = 5
     for model_name in model_names:
         for train_data in train_datas:
+            print("\n\n--------------------")
+            print("model_name:", model_name)
+            print("train_data:", train_data)
+            print("epoch:", num_epochs)
             train(model_name, train_data, num_epochs)
