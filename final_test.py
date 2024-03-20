@@ -179,7 +179,7 @@ def specific_epoch(epoch):
 if __name__ == '__main__':
     namefiles = ["hats_test.txt"] # , "hats.txt"] # for dataset
     epochs = 5
-    model_names = ["multi"] # french
+    model_names = ["multi"] # french or multi
     train_datas = ["hats_extended", "hats_train"] # "none" or "hats_extended" or "hats_train"
     certitudes = [0.7, 1] # 0 or 1 or 0.7
 
@@ -189,4 +189,10 @@ if __name__ == '__main__':
             for model_name in model_names:
                 for train_data in train_datas:
                     for certitude in certitudes:
+                        print("\n\n-----------------")
+                        print("namefile:", namefile)
+                        print("epoch:", epoch)
+                        print("model_name:", model_name)
+                        print("train_data:", train_data)
+                        print("certitude:", certitude)
                         inference_test(dataset=dataset, namefile=namefile, epoch=epoch, model_name=model_name, train_data=train_data, certitude=certitude)
