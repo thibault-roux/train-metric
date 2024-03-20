@@ -180,8 +180,8 @@ if __name__ == '__main__':
     namefiles = ["hats_test.txt"] # , "hats.txt"] # for dataset
     epochs = 5
     model_names = ["multi"] # french
-    train_data = ["hats_extended", "hats_train"] # "none" or "hats_extended" or "hats_train"
-    certitude = [0.7, 1] # 0 or 1 or 0.7
+    train_datas = ["hats_extended", "hats_train"] # "none" or "hats_extended" or "hats_train"
+    certitudes = [0.7, 1] # 0 or 1 or 0.7
 
     for namefile in namefiles:
         dataset = read_dataset(namefile)
