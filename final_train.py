@@ -190,8 +190,13 @@ def train(model_name, train_data, num_epochs):
     # Set up the Siamese network and the dataset
     siamese_network = SiameseNetwork(pretrained_model_name, max_length)
     # Load the last saved pretrained model if available
-    saved_model_path = 'models/' + model_name + "/" + train_data + '/model.pth'
-    if os.path.exists(saved_model_path):
+    last_epoch = -1
+    for epoch in range(num_epochs):
+        saved_model_path = 'models/' + model_name + "/" + train_data + '/model.pth.' + str(epoch)
+        if os.path.exists(saved_model_path):
+            last_epoch = epoch
+    if last_epoch != -1:
+        saved_model_path = 'models/' + model_name + "/" + train_data + '/model.pth' + str(last_epoch)
         siamese_network.load_state_dict(torch.load(saved_model_path))
         print(f"Loaded trained model from local path: {saved_model_path}")
     else:
