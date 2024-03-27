@@ -196,8 +196,8 @@ def train(model_name, train_data, num_epochs):
         if os.path.exists(saved_model_path):
             last_epoch = epoch
     if last_epoch != -1:
-        saved_model_path = 'models/' + model_name + "/" + train_data + '/model.pth.' + str(last_epoch)
-        siamese_network.load_state_dict(torch.load(saved_model_path))
+        saved_model_path = 'models/' + model_name + "/" + train_data + '/model.pth'
+        siamese_network.load_state_dict(torch.load(saved_model_path + '.' + str(last_epoch)))
         print(f"Loaded trained model from local path: {saved_model_path}")
     else:
         print(f"Local trained model not found at {saved_model_path}. Training from pretrained.")
@@ -214,7 +214,7 @@ def train(model_name, train_data, num_epochs):
     # Training loop
     losses = []
     best_accuracy = 0
-    for epoch in range(num_epochs):
+    for epoch in range(last_epoch+1, num_epochs):
         print(epoch)
         bar = progressbar.ProgressBar(max_value=len(dataloader))
         for i, batch in enumerate(dataloader):
