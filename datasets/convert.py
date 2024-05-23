@@ -1,9 +1,9 @@
 
 
-def read_hats():
+def read_hats(option):
     # dataset = [{"reference": ref, "hypA": hypA, "nbrA": nbrA, "hypB": hypB, "nbrB": nbrB}, ...]
     dataset = []
-    with open("hats.txt", "r", encoding="utf8") as file:
+    with open("hats" + option + ".txt", "r", encoding="utf8") as file:
         next(file)
         for line in file:
             line = line[:-1].split("\t")
@@ -22,8 +22,8 @@ def read_hats():
             dataset.append(dictionary)
     return dataset
 
-def write_new_hats(dataset):
-    with open("hats_annotation.txt", "w", encoding="utf8") as file:
+def write_new_hats(dataset, option):
+    with open("hats_annotation" + option + ".txt", "w", encoding="utf8") as file:
         file.write("reference\thypA\thypB\tannotation\n")
         for item in dataset:
             file.write(item["ref"] + "\t" + item["hypA"] + "\t" + item["hypB"] + "\t" + str(item["annotation"]) + "\n")
@@ -31,6 +31,7 @@ def write_new_hats(dataset):
             file.write(item["ref"] + "\t" + item["hypB"] + "\t" + item["hypA"] + "\t" + str(1-item["annotation"]) + "\n")
 
 if __name__ == "__main__":
-    dataset = read_hats()
-    write_new_hats(dataset)
+    option = "_train_best" # ""
+    dataset = read_hats(option)
+    write_new_hats(dataset, option)
     print("done")
