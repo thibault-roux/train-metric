@@ -246,7 +246,7 @@ def train(model_name, train_data, num_epochs):
 
 if __name__ == "__main__":
     model_names = ['french'] #, 'multi']
-    train_datas = ['hats_extended'] # hats_train', 'hats_extended'
+    train_datas = ['hats_extended'] # hats_train', 'hats_extended', 'hats_train_best'
 
     num_epochs = 40
     for model_name in model_names:
