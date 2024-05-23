@@ -31,11 +31,18 @@ if __name__ == "__main__":
     # filter dataset with 0
     dataset_easy = []
     dataset_tough = []
+    dataset_very_tough = []
     for item in dataset:
         if item["nbrA"] == "0" or item["nbrB"] == "0":
             dataset_easy.append(item)
         else:
             dataset_tough.append(item)
+            A = int(item["nbrA"])
+            B = int(item["nbrB"])
+            agreement = max(A, B) / (A + B)
+            if agreement < 0.75:
+                dataset_very_tough.append(item)
 
     write(namefile + "_easy", dataset_easy)
     write(namefile + "_tough", dataset_tough)
+    write(namefile + "_very_tough", dataset_very_tough)
