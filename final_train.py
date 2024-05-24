@@ -194,8 +194,8 @@ def train(model_name, train_data, num_epochs):
     # Load the last saved pretrained model if available
     last_epoch = -1
     for epoch in range(num_epochs):
-        saved_model_path = 'models/' + model_name + "/" + train_data + '/model.pth.' + str(epoch)
-        if os.path.exists(saved_model_path):
+        saved_model_path = 'models/' + model_name + "/" + train_data + '/model.pth'
+        if os.path.exists(saved_model_path + '.' + str(epoch)):
             last_epoch = epoch
     if last_epoch != -1:
         saved_model_path = 'models/' + model_name + "/" + train_data + '/model.pth'
