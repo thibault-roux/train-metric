@@ -39,6 +39,7 @@ def semdist(ref, hyp, model):
     return (1-score)*100 # lower is better
 
 def evaluate(model, namefile):
+    print("Evaluating...")
     correct = 0
     incorrect = 0
     with open("datasets/" + namefile + ".txt", "r", encoding="utf8") as file:
@@ -73,6 +74,7 @@ if __name__ == "__main__":
     evaluate(model, "hats_test") # hats_test, hats_test_best
     
     # Tune the model
+    print("Fine tuning...")
     model.fit(train_objectives=[(train_dataloader, train_loss)], epochs=1, warmup_steps=100)
     # save in models/losstriplet
     model.save("models/losstriplet2")
