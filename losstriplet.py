@@ -63,6 +63,7 @@ if __name__ == "__main__":
     train_dataloader = get_dataloader("hats_train") # hats_train, hats_train_best
     train_loss = sentence_transformers.losses.TripletLoss(model=model)
 
+    evaluate(model, "hats_test") # hats_test, hats_test_best
     
     # Tune the model
     model.fit(train_objectives=[(train_dataloader, train_loss)], epochs=1, warmup_steps=100)
@@ -70,5 +71,4 @@ if __name__ == "__main__":
     model.save("models/losstriplet")
 
     # Test the model
-    model = SentenceTransformer("models/losstriplet")
     evaluate(model, "hats_test") # hats_test, hats_test_best
