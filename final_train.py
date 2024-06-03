@@ -9,7 +9,7 @@ import progressbar
 from sklearn.metrics import accuracy_score
 import os
 
-import test
+import final_test
 
 
 
@@ -245,10 +245,10 @@ def train(model_name, train_data, num_epochs):
         memory = (tokenizer, model)
         # 2) load dataset
         testing_dataset_name = "hats_test.txt"
-        dataset = test.read_dataset(testing_dataset_name)
+        dataset = final_test.read_dataset(testing_dataset_name)
         # 3) evaluate
-        semdist2 = test.SemDist2()
-        x_score = test.evaluator(semdist2, dataset, memory=memory, certitude=1)
+        semdist2 = final_test.SemDist2()
+        x_score = final_test.evaluator(semdist2, dataset, memory=memory, certitude=1)
         # 4) save model
         if x_score > 90:
             torch.save(siamese_network.state_dict(), saved_model_path + f".{epoch}")
