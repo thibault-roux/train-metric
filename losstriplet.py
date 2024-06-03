@@ -15,13 +15,30 @@ model = SentenceTransformer('all-MiniLM-L6-v2')
 # print("Cosine-Similarity:", cos_sim)
 
 
-#Define your train examples. You need more than just two examples...
-#Inputs are wrapped around InputExample class which the model expects
-#Using Triplet Loss
-train_examples = [InputExample(texts=['My dear friend', 'My best friend', 'Got to hell']),
-    InputExample(texts=['My good lover', 'My best lover' 'I do not want to see you'])]
-#Create a PyTorch dataloader and the train loss
-train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=16)
+def get_dataloader(namefile):
+    # train_examples = [InputExample(texts=['My dear friend', 'My best friend', 'Got to hell']),
+    #     InputExample(texts=['My first sentence', 'My second sentence' 'Unrelated sentence'])]
+
+    train_examples = []
+    with open("datasets/" + namefile + ".txt", "r", encoding="utf8") as file:
+        next(file) # reference  hypA    nbrA    hypB    nbrB
+        for line in file:
+            line = line[:-1].split("\t")
+            reference = line[0]
+            hypA = line[1]
+            hypB = line[3]
+            nbrA = int(line[2])
+            nbrB = int(line[4])
+            if nbrA > nbrB:
+                train_examples.append(InputExample(texts=[reference, hypA, hypB]))
+            elif nbrA < nbrB:
+                train_examples.append(InputExample(texts=[reference, hypB, hypA]))
+
+    #Create a PyTorch dataloader and the train loss
+    train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=16)
+
+
+
 train_loss = sentence_transformers.losses.TripletLoss(model=model)
 #Tune the model
 model.fit(train_objectives=[(train_dataloader, train_loss)], epochs=1, warmup_steps=100)
