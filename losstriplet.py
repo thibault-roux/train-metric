@@ -1,6 +1,7 @@
 from torch.utils.data import DataLoader
 import sentence_transformers
 from sentence_transformers import SentenceTransformer, util, InputExample, losses
+from sklearn.metrics.pairwise import cosine_similarity
 
 
 
@@ -31,6 +32,12 @@ def get_dataloader(namefile, batch_size=16):
 
 
 # ----------------- Evaluator -----------------
+def semdist(ref, hyp, model):
+    ref_projection = model.encode(ref).reshape(1, -1)
+    hyp_projection = model.encode(hyp).reshape(1, -1)
+    score = cosine_similarity(ref_projection, hyp_projection)[0][0]
+    return (1-score)*100 # lower is better
+
 def evaluate(model, namefile):
     correct = 0
     incorrect = 0
@@ -68,7 +75,7 @@ if __name__ == "__main__":
     # Tune the model
     model.fit(train_objectives=[(train_dataloader, train_loss)], epochs=1, warmup_steps=100)
     # save in models/losstriplet
-    model.save("models/losstriplet")
+    model.save("models/losstriplet2")
 
     # Test the model
     evaluate(model, "hats_test") # hats_test, hats_test_best
