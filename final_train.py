@@ -247,11 +247,14 @@ def train(model_name, train_data, num_epochs):
         testing_dataset_name = "hats_test.txt"
         dataset = final_test.read_dataset(testing_dataset_name)
         # 3) evaluate
-        semdist2 = final_test.SemDist2()
+        semdist2 = final_test.semdist2
         x_score = final_test.evaluator(semdist2, dataset, memory=memory, certitude=1)
         # 4) save model
-        if x_score > 90:
+        if x_score > best_accuracy:
             torch.save(siamese_network.state_dict(), saved_model_path + f".{epoch}")
+            print(f"Saved model at {saved_model_path}.{epoch}")
+            best_accuracy = x_score
+        print(f"Accuracy: {x_score}")
 
 
 
