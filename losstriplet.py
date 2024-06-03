@@ -1,3 +1,5 @@
+from torch.utils.data import DataLoader
+import sentence_transformers
 from sentence_transformers import SentenceTransformer, util, InputExample, losses
 
 
@@ -12,8 +14,7 @@ model = SentenceTransformer('all-MiniLM-L6-v2')
 # cos_sim = util.cos_sim(emb1, emb2)
 # print("Cosine-Similarity:", cos_sim)
 
-#Using Cosine SimilarityLoss
-from torch.utils.data import DataLoader
+
 #Define your train examples. You need more than just two examples...
 #Inputs are wrapped around InputExample class which the model expects
 #Using Triplet Loss
