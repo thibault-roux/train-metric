@@ -50,8 +50,8 @@ def evaluate(model, namefile):
             hypB = line[3]
             nbrA = int(line[2])
             nbrB = int(line[4])
-            scoreA = model.similarity(reference, hypA)
-            scoreB = model.similarity(reference, hypB)
+            scoreA = semdist(reference, hypA, model)
+            scoreB = semdist(reference, hypB, model)
             if scoreA < scoreB and nbrA > nbrB:
                 correct += 1
             elif scoreA > scoreB and nbrA < nbrB:
