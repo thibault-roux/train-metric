@@ -25,7 +25,7 @@ def read_hats():
     return dataset
 
 def write_new_hats(dataset):
-    with open("extended_hats.txt", "w", encoding="utf8") as file:
+    with open("hats_extended.txt", "w", encoding="utf8") as file:
         # reference	hypA	nbrA	hypB	nbrB
         file.write("reference\thypA\tnbrA\thypB\tnbrB\n")
         for item in dataset:
