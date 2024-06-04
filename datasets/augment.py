@@ -14,7 +14,7 @@ def read_hats(option):
     # dataset = [{"reference": ref, "hypA": hypA, "nbrA": nbrA, "hypB": hypB, "nbrB": nbrB}, ...]
     dataset = []
     with open("hats" + option + ".txt", "r", encoding="utf8") as file:
-        # next(file) # reference	hypA	nbrA    hypB    nbrB
+        next(file) # reference	hypA	nbrA    hypB    nbrB
         for line in file:
             line = line[:-1].split("\t")
             dictionary = dict()
@@ -38,9 +38,9 @@ if __name__ == "__main__":
         new_dataset.append(dictionary)
         # take a random value from data_for_augmentation
         for i in range(AUGMENTATION):
-        random_sentence = random.choice(data_for_augmentation)
-        new_dataset.append({"ref": dictionary["ref"], "hypA": dictionary["hypA"], "nbrA": 7, "hypB": random_sentence, "nbrB": 0})
-        new_dataset.append({"ref": dictionary["ref"], "hypA": random_sentence, "nbrA": 0, "hypB": dictionary["hypB"], "nbrB": 7})
+            random_sentence = random.choice(data_for_augmentation)
+            new_dataset.append({"ref": dictionary["ref"], "hypA": dictionary["hypA"], "nbrA": 7, "hypB": random_sentence, "nbrB": 0})
+            new_dataset.append({"ref": dictionary["ref"], "hypA": random_sentence, "nbrA": 0, "hypB": dictionary["hypB"], "nbrB": 7})
     with open("hats" + option + "_augmented.txt", "w", encoding="utf8") as file:
         # reference	hypA	nbrA	hypB	nbrB
         file.write("reference\thypA\tnbrA\thypB\tnbrB\n")
