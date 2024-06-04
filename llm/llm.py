@@ -1,24 +1,66 @@
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
+from typing import Dict, List, Optional
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer, GenerationConfig, TextStreamer
 
-# Load pre-trained model and tokenizer
-model_name = "dbddv01/gpt2-french-small"
-model = GPT2LMHeadModel.from_pretrained(model_name)
-tokenizer = GPT2Tokenizer.from_pretrained(model_name)
+model_name_or_path = "bofenghuang/vigogne-2-70b-chat"
+tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, padding_side="right", use_fast=False)
+model = AutoModelForCausalLM.from_pretrained(model_name_or_path, torch_dtype=torch.float16, device_map="auto")
 
-# Function for text autocompletion
-def autocomplete(prompt_text, max_length=50):
-    # Encode the prompt text
-    input_ids = tokenizer.encode(prompt_text, return_tensors="pt")
-    
-    # Generate text
-    output = model.generate(input_ids, max_length=max_length, num_return_sequences=1, pad_token_id=tokenizer.eos_token_id)
-    
-    # Decode the generated text
-    generated_text = tokenizer.decode(output[0], skip_special_tokens=True)
-    
-    return generated_text
+streamer = TextStreamer(tokenizer, timeout=10.0, skip_prompt=True, skip_special_tokens=True)
 
-# Example usage
-prompt = "Once upon a time"
-completed_text = autocomplete(prompt, max_length=50)
-print(completed_text)
+
+def chat(
+    query: str,
+    history: Optional[List[Dict]] = None,
+    temperature: float = 0.7,
+    top_p: float = 1.0,
+    top_k: float = 0,
+    repetition_penalty: float = 1.1,
+    max_new_tokens: int = 1024,
+    **kwargs,
+):
+    if history is None:
+        history = []
+
+    history.append({"role": "user", "content": query})
+
+    input_ids = tokenizer.apply_chat_template(history, return_tensors="pt").to(model.device)
+    input_length = input_ids.shape[1]
+
+    generated_outputs = model.generate(
+        input_ids=input_ids,
+        generation_config=GenerationConfig(
+            temperature=temperature,
+            do_sample=temperature > 0.0,
+            top_p=top_p,
+            top_k=top_k,
+            repetition_penalty=repetition_penalty,
+            max_new_tokens=max_new_tokens,
+            pad_token_id=tokenizer.eos_token_id,
+            **kwargs,
+        ),
+        streamer=streamer,
+        return_dict_in_generate=True,
+    )
+
+    generated_tokens = generated_outputs.sequences[0, input_length:]
+    generated_text = tokenizer.decode(generated_tokens, skip_special_tokens=True)
+
+    history.append({"role": "assistant", "content": generated_text})
+
+    return generated_text, history
+
+
+# 1st round
+response, history = chat("Un escargot parcourt 100 mètres en 5 heures. Quelle est sa vitesse ?", history=None)
+
+# 2nd round
+response, history = chat("Quand il peut dépasser le lapin ?", history=history)
+
+# 3rd round
+response, history = chat("Écris une histoire imaginative qui met en scène une compétition de course entre un escargot et un lapin.", history=history)
+
+
+
+print(history)
+print(response)
