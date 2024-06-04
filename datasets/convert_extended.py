@@ -10,8 +10,8 @@ def read_hats():
             dictionary = dict()
             dictionary["ref"] = line[0]
             dictionary["hypA"] = line[1]
-            dictionary["hypB"] = line[3]
-            dictionary["annotation"] = float(line[4])
+            dictionary["hypB"] = line[2]
+            dictionary["annotation"] = float(line[3])
             if dictionary["annotation"] == 0:
                 dictionary["nbrA"] = 0
                 dictionary["nbrB"] = 1
