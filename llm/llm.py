@@ -16,7 +16,7 @@ def chat(
     top_p: float = 1.0,
     top_k: float = 0,
     repetition_penalty: float = 1.1,
-    max_new_tokens: int = 10,
+    max_new_tokens: int = 1,
     **kwargs,
 ):
     if history is None:
@@ -52,7 +52,7 @@ def chat(
 
 
 # 1st round
-response, history = chat("Un escargot parcourt 100 mètres en 5 heures. Quelle est sa vitesse ?", history=None)
+# response, history = chat("Un escargot parcourt 100 mètres en 5 heures. Quelle est sa vitesse ?", history=None)
 
 # # 2nd round
 # response, history = chat("Quand il peut dépasser le lapin ?", history=history)
@@ -60,7 +60,8 @@ response, history = chat("Un escargot parcourt 100 mètres en 5 heures. Quelle e
 # # 3rd round
 # response, history = chat("Écris une histoire imaginative qui met en scène une compétition de course entre un escargot et un lapin.", history=history)
 
-
+prompt = "Selon la référence, écris juste A ou B pour sélectionner la meilleure transcription parmi les deux hypothèses suivantes :\nRéférence : Le chat est sur le tapis\tHypothèse A : Le chien est sur le tapis\tHypothèse B : Le pain peint le papi\tChoix : A\nRéférence : Je vais voir mamie\tHypothèse A : Je monte marre de pire\tHypothèse B : Je vais voir mami\tChoix : B\nRéférence : Mon radiateur est en panne\tHypothèse A : Mon mon radiateur est en panne\tHypothèse B : Mon radieux pend\tChoix : "
+response, history = chat(prompt, history=None)
 
 print(history)
 print(response)
