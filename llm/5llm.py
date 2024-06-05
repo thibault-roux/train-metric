@@ -48,6 +48,7 @@ if ihavemoney:
     )
 
 def infer(namefile):
+    dataset = read_hats(namefile)
     txt = "reference\thypA\tnbrA\thypB\tnbrB\n"
     for i, data in enumerate(dataset):
         chat(data["reference"], data["hypA"], data["hypB"], i)
@@ -59,19 +60,24 @@ def infer(namefile):
             txt += data["reference"] + "\t" + data["hypA"] + "\t0\t" + data["hypB"] + "\t7\n"
         else:
             print("Weird output:", answer)
+    with open("../../datasets/" + namefile + "_chatgpt.txt", "w", encoding="utf8") as file:
+        file.write(txt)
 
 def eval(namefile):
-    dataset = read_hats(namefile)
+    correct_dataset = read_hats(namefile)
+    infered_dataset = read_hats(namefile + "_chatgpt")
+
     correct = 0
     incorrect = 0
-
-        if response.choices[0].message.content == data["best"]:
+    for i, data in enumerate(correct_dataset):
+        if data["best"] == infered_dataset[i]["best"]:
             correct += 1
         else:
             incorrect += 1
-            if response.choices[0].message.content != "A" or response.choices[0].message.content != "B":
-                print("Weird output:", response.choices[0].message.content)
-        
+    print("Correct:", correct)
+    print("Incorrect:", incorrect)
+    print("Accuracy:", correct / (correct + incorrect))
+
 
 
 if __name__ == "__main__":
@@ -79,3 +85,4 @@ if __name__ == "__main__":
     # print(response.choices[0].message.content)
 
     namefile = "hats_train"
+    infer(namefile)
