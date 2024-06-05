@@ -32,7 +32,7 @@ def chat(prompt):
 
 def read_hats(namefile):
     dataset = []
-    with open(namefile, "r", encoding="utf8") as file:
+    with open("../datasets/" + namefile + ".txt", "r", encoding="utf8") as file:
         next(file)
         for line in file:
             dictionary = dict()
@@ -53,4 +53,12 @@ def read_hats(namefile):
 
 
 if __name__ == "__main__":
-    pass
+    dataset = read_hats("hats_train")
+    for data in dataset:
+        prompt = add2prompt(prompt, data["reference"], data["hypA"], data["hypB"])
+        response = chat(prompt)
+        if response == data["best"]:
+            print("Correct")
+        else:
+            print("Incorrect")
+        input()
