@@ -2,21 +2,20 @@ import os
 from openai import OpenAI
 import pickle
 
-ihavemoney = False
+ihavemoney = True
 
 if ihavemoney:
     client = OpenAI(
-        api_key = "",
+        api_key = os.environ.get("OPENAI_API_KEY"),
     )
 
 
     response = client.chat.completions.create(
     model="gpt-3.5-turbo",
     messages=[
-        {"role": "system", "content": "You are a helpful assistant."},
-        {"role": "user", "content": "Who won the world series in 2020?"},
-        {"role": "assistant", "content": "The Los Angeles Dodgers won the World Series in 2020."},
-        {"role": "user", "content": "Where was it played?"}
+        {"role": "system", "content": "Tu écris seulement 'A' ou 'B' pour choisir la meilleure transcription."},
+        {"role": "user", "content": "Référence : Mon radiateur est en panne\nHypothèse A : Mon mon radiateur est en panne\nHypothèse B : Mon radieux pend"},
+        {"role": "assistant", "content": "A"},
     ]
     )
 
