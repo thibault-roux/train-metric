@@ -54,7 +54,11 @@ if ihavemoney:
 def infer(namefile):
     dataset = read_hats(namefile)
     txt = "reference\thypA\tnbrA\thypB\tnbrB\n"
+    # progressbar
+    bar = progressbar.ProgressBar(maxval=len(dataset))
+    bar.start()
     for i, data in enumerate(dataset):
+        bar.update(i)
         chat(data["reference"], data["hypA"], data["hypB"], i)
         print(i)
         answer = response.choices[0].message.content
@@ -66,6 +70,7 @@ def infer(namefile):
             print("Weird output:", answer)
     with open("../../datasets/" + namefile + "_chatgpt.txt", "w", encoding="utf8") as file:
         file.write(txt)
+    bar.finish()
 
 def eval(namefile):
     correct_dataset = read_hats(namefile)
