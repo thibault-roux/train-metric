@@ -7,6 +7,9 @@ import progressbar
 # source ~/.zshrc
 
 def chat(ref, hypA, hypB, i):
+    # check if the pickle exists
+    if os.path.exists("pickle/" + str(i) + ".pkl"):
+        return pickle.load(open("pickle/" + str(i) + ".pkl", "rb"))
     response = client.chat.completions.create(
     model="gpt-3.5-turbo",
     messages=[
@@ -17,6 +20,7 @@ def chat(ref, hypA, hypB, i):
     ]
     )
     pickle.dump(response, open("pickle/" + str(i) + ".pkl", "wb"))
+    return response
 
 
 def read_hats(namefile):
