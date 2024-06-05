@@ -2,8 +2,8 @@ from typing import Dict, List, Optional
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, GenerationConfig, TextStreamer
 
-model_name_or_path = "bofenghuang/vigogne-2-70b-chat"
-tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, padding_side="right", use_fast=False)
+model_name_or_path = "bigscience/bloom-1b1" # "bofenghuang/vigogne-2-70b-chat"
+tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, padding_side="left", use_fast=False) # original padding_side='right'
 model = AutoModelForCausalLM.from_pretrained(model_name_or_path, torch_dtype=torch.float16, device_map="auto")
 
 streamer = TextStreamer(tokenizer, timeout=10.0, skip_prompt=True, skip_special_tokens=True)
@@ -16,7 +16,7 @@ def chat(
     top_p: float = 1.0,
     top_k: float = 0,
     repetition_penalty: float = 1.1,
-    max_new_tokens: int = 1024,
+    max_new_tokens: int = 10,
     **kwargs,
 ):
     if history is None:
@@ -54,11 +54,11 @@ def chat(
 # 1st round
 response, history = chat("Un escargot parcourt 100 mètres en 5 heures. Quelle est sa vitesse ?", history=None)
 
-# 2nd round
-response, history = chat("Quand il peut dépasser le lapin ?", history=history)
+# # 2nd round
+# response, history = chat("Quand il peut dépasser le lapin ?", history=history)
 
-# 3rd round
-response, history = chat("Écris une histoire imaginative qui met en scène une compétition de course entre un escargot et un lapin.", history=history)
+# # 3rd round
+# response, history = chat("Écris une histoire imaginative qui met en scène une compétition de course entre un escargot et un lapin.", history=history)
 
 
 
