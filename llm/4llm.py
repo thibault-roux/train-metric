@@ -21,10 +21,10 @@ def add2prompt(prompt, ref, hypA, hypB):
     return prompt
 
 
-def chat(prompt):
-    ref = input("Saisir la référence: ")
-    hypA = input("Saisir l'hypothèse A: ")
-    hypB = input("Saisir l'hypothèse B: ")
+def chat(prompt, ref, hypA, hypB):
+    # ref = input("Saisir la référence: ")
+    # hypA = input("Saisir l'hypothèse A: ")
+    # hypB = input("Saisir l'hypothèse B: ")
     txt = add2prompt(prompt, ref, hypA, hypB)
     result = model(txt, max_new_tokens=1)
     print(result)
@@ -55,8 +55,7 @@ def read_hats(namefile):
 if __name__ == "__main__":
     dataset = read_hats("hats_train")
     for data in dataset:
-        prompt = add2prompt(prompt, data["reference"], data["hypA"], data["hypB"])
-        response = chat(prompt)
+        response = chat(prompt, data["reference"], data["hypA"], data["hypB"])
         if response == data["best"]:
             print("Correct")
         else:
