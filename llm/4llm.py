@@ -21,11 +21,36 @@ def add2prompt(prompt, ref, hypA, hypB):
     return prompt
 
 
-while True:
-    print()
+def chat(prompt):
     ref = input("Saisir la référence: ")
     hypA = input("Saisir l'hypothèse A: ")
     hypB = input("Saisir l'hypothèse B: ")
     txt = add2prompt(prompt, ref, hypA, hypB)
     result = model(txt, max_new_tokens=1)
     print(result)
+    return result[0]['generated_text'][:-1]
+
+def read_hats(namefile):
+    dataset = []
+    with open(namefile, "r", encoding="utf8") as file:
+        next(file)
+        for line in file:
+            dictionary = dict()
+            line = line[:-1].split("\t")
+            dictionary["reference"] = line[0]
+            dictionary["hypA"] = line[1]
+            nbrA = int(line[2])
+            dictionary["hypB"] = line[3]
+            nbrB = int(line[4])
+            if nbrA > nbrB:
+                dictionary["best"] = "A"
+            elif nbrA < nbrB:
+                dictionary["best"] = "B"
+            else:
+                continue
+            dataset.append(dictionary)
+    return dataset
+
+
+if __name__ == "__main__":
+    pass
