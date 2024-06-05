@@ -45,7 +45,7 @@ def read_hats(namefile):
     return dataset
 
 
-ihavemoney = False
+ihavemoney = True
 if ihavemoney:
     client = OpenAI(
         api_key=os.getenv("OPENAI_API_KEY"),
@@ -59,20 +59,23 @@ def infer(namefile):
     bar.start()
     for i, data in enumerate(dataset):
         bar.update(i)
-        chat(data["reference"], data["hypA"], data["hypB"], i)
+        response = chat(data["reference"], data["hypA"], data["hypB"], i)
         print(i)
         answer = response.choices[0].message.content
         if answer == "A":
             txt += data["reference"] + "\t" + data["hypA"] + "\t7\t" + data["hypB"] + "\t0\n"
-        elif answer != "B":
+        elif answer == "B":
             txt += data["reference"] + "\t" + data["hypA"] + "\t0\t" + data["hypB"] + "\t7\n"
         else:
-            print("Weird output:", answer)
+            print("Weird output: '" + str(answer) + "'")
+            input()
     with open("../../datasets/" + namefile + "_chatgpt.txt", "w", encoding="utf8") as file:
         file.write(txt)
+    print("File writed.")
     bar.finish()
 
 def eval(namefile):
+    print("evaluating...")
     correct_dataset = read_hats(namefile)
     infered_dataset = read_hats(namefile + "_chatgpt")
 
@@ -95,3 +98,4 @@ if __name__ == "__main__":
 
     namefile = "hats_train"
     infer(namefile)
+    eval(namefile)
