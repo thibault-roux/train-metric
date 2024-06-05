@@ -10,17 +10,18 @@ def chat(ref, hypA, hypB, i):
     # check if the pickle exists
     if os.path.exists("pickle/" + str(i) + ".pkl"):
         return pickle.load(open("pickle/" + str(i) + ".pkl", "rb"))
-    response = client.chat.completions.create(
-    model="gpt-3.5-turbo",
-    messages=[
-        {"role": "system", "content": "Tu écris seulement 'A' ou 'B' pour choisir la meilleure transcription."},
-        {"role": "user", "content": "Référence : Mon radiateur est en panne\nHypothèse A : Mon mon radiateur est en panne\nHypothèse B : Mon radieux pend"},
-        {"role": "assistant", "content": "A"},
-        {"role": "user", "content": "Référence : " + ref + "\nHypothèse A : " + hypA + "\nHypothèse B : " + hypB},
-    ]
-    )
-    pickle.dump(response, open("pickle/" + str(i) + ".pkl", "wb"))
-    return response
+    else:
+        response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "Tu écris seulement 'A' ou 'B' pour choisir la meilleure transcription."},
+            {"role": "user", "content": "Référence : Mon radiateur est en panne\nHypothèse A : Mon mon radiateur est en panne\nHypothèse B : Mon radieux pend"},
+            {"role": "assistant", "content": "A"},
+            {"role": "user", "content": "Référence : " + ref + "\nHypothèse A : " + hypA + "\nHypothèse B : " + hypB},
+        ]
+        )
+        pickle.dump(response, open("pickle/" + str(i) + ".pkl", "wb"))
+        return response
 
 
 def read_hats(namefile):
@@ -45,7 +46,7 @@ def read_hats(namefile):
     return dataset
 
 
-ihavemoney = True
+ihavemoney = False
 if ihavemoney:
     client = OpenAI(
         api_key=os.getenv("OPENAI_API_KEY"),
@@ -61,7 +62,7 @@ def infer(namefile):
         bar.update(i)
         response = chat(data["reference"], data["hypA"], data["hypB"], i)
         print(i)
-        answer = response.choices[0].message.content
+        answer = response.choices[0].message.content[0]
         if answer == "A":
             txt += data["reference"] + "\t" + data["hypA"] + "\t7\t" + data["hypB"] + "\t0\n"
         elif answer == "B":
@@ -69,7 +70,7 @@ def infer(namefile):
         else:
             print("Weird output: '" + str(answer) + "'")
             input()
-    with open("../../datasets/" + namefile + "_chatgpt.txt", "w", encoding="utf8") as file:
+    with open("../datasets/" + namefile + "_chatgpt.txt", "w", encoding="utf8") as file:
         file.write(txt)
     print("File writed.")
     bar.finish()
