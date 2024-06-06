@@ -3,8 +3,9 @@ from openai import OpenAI
 import pickle
 import progressbar
 
-
-# source ~/.zshrc
+"""
+source ~/.zshrc
+"""
 
 def chat(ref, hypA, hypB, i):
     # check if the pickle exists
@@ -62,7 +63,7 @@ def infer(namefile):
         bar.update(i)
         response = chat(data["reference"], data["hypA"], data["hypB"], i)
         print(i)
-        answer = response.choices[0].message.content[0]
+        answer = response.choices[0].message.content # [0]
         if "A" in answer[-3:]:
             answer = "A"
         elif "B" in answer[-3:]:
