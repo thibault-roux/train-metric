@@ -8,19 +8,19 @@ import progressbar
 
 def chat(ref, hypA, hypB, i):
     # check if the pickle exists
-    if os.path.exists("pickle/pickle4/" + str(i) + ".pkl"):
-        return pickle.load(open("pickle/pickle4/" + str(i) + ".pkl", "rb"))
+    if os.path.exists("pickle/pickle6/" + str(i) + ".pkl"):
+        return pickle.load(open("pickle/pickle6/" + str(i) + ".pkl", "rb"))
     else:
         response = client.chat.completions.create(
         model="gpt-4o", # gpt-3.5-turbo # gpt-4o
         messages=[
-            {"role": "system", "content": "Nous appelons référence une transcription exacte d'un audio vers du texte. Deux hypothèses produites par des systèmes de reconnaissances de la parole. Tu écris seulement 'A' ou 'B' pour choisir la transcription qui te paraît la plus acceptable."},
-            {"role": "user", "content": "Référence : Mon radiateur est en panne\nHypothèse A : Mon mon radiateur est en panne\nHypothèse B : Mon radieux pend"},
-            {"role": "assistant", "content": "A"},
+            {"role": "system", "content": "Nous appelons référence une transcription exacte d'un audio vers du texte. Deux hypothèses produites par des systèmes de reconnaissances de la parole. Tu expliques d'abord ton raisonnement et tu finis ta réponse par 'A' ou 'B' pour choisir la transcription qui te paraît la plus acceptable d'un point de vue sémantique ou phonétique."},
+            {"role": "user", "content": "Référence : c' est à lui même\nHypothèse A : êtes à lui même\nHypothèse B : c' est euh à lui-même"},
+            {"role": "assistant", "content": "Même si l'hypothèse B contient une disfluence ('euh'), elle correspond beaucoup mieux à la référence en termes de mots et de sens. La disfluence peut être tolérée si elle fait partie de l'original, tandis que l'erreur grammaticale de l'hypothèse A est plus problématique. Donc, la transcription la plus acceptable est l'hypothèse B."},
             {"role": "user", "content": "Référence : " + ref + "\nHypothèse A : " + hypA + "\nHypothèse B : " + hypB},
         ]
         )
-        pickle.dump(response, open("pickle/pickle4/" + str(i) + ".pkl", "wb"))
+        pickle.dump(response, open("pickle/pickle6/" + str(i) + ".pkl", "wb"))
         return response
 
 
@@ -63,6 +63,10 @@ def infer(namefile):
         response = chat(data["reference"], data["hypA"], data["hypB"], i)
         print(i)
         answer = response.choices[0].message.content[0]
+        if "A" in answer[-3:]:
+            answer = "A"
+        elif "B" in answer[-3:]:
+            answer = "B"
         if answer == "A":
             txt += data["reference"] + "\t" + data["hypA"] + "\t7\t" + data["hypB"] + "\t0\n"
         elif answer == "B":
@@ -97,6 +101,6 @@ if __name__ == "__main__":
     # response = pickle.load(open("response2.pkl", "rb"))
     # print(response.choices[0].message.content)
 
-    namefile = "hats_test"
+    namefile = "hats_train_best"
     infer(namefile)
     eval(namefile)
