@@ -9,8 +9,8 @@ source ~/.zshrc
 
 def chat(ref, hypA, hypB, i):
     # check if the pickle exists
-    if os.path.exists("pickle/pickle6/" + str(i) + ".pkl"):
-        return pickle.load(open("pickle/pickle6/" + str(i) + ".pkl", "rb"))
+    if os.path.exists("pickle/pickle7/" + str(i) + ".pkl"):
+        return pickle.load(open("pickle/pickle7/" + str(i) + ".pkl", "rb"))
     else:
         response = client.chat.completions.create(
         model="gpt-4o", # gpt-3.5-turbo # gpt-4o
@@ -21,7 +21,7 @@ def chat(ref, hypA, hypB, i):
             {"role": "user", "content": "Référence : " + ref + "\nHypothèse A : " + hypA + "\nHypothèse B : " + hypB},
         ]
         )
-        pickle.dump(response, open("pickle/pickle6/" + str(i) + ".pkl", "wb"))
+        pickle.dump(response, open("pickle/pickle7/" + str(i) + ".pkl", "wb"))
         return response
 
 
@@ -68,13 +68,17 @@ def infer(namefile):
             answer = "A"
         elif "B" in answer[-3:]:
             answer = "B"
+        else:
+            print("Weird output: '" + str(answer) + "'")
+            change = input("Choose A or B: ")
+            if change == "A":
+                answer = "A"
+            elif change == "B":
+                answer = "B"
         if answer == "A":
             txt += data["reference"] + "\t" + data["hypA"] + "\t7\t" + data["hypB"] + "\t0\n"
         elif answer == "B":
             txt += data["reference"] + "\t" + data["hypA"] + "\t0\t" + data["hypB"] + "\t7\n"
-        else:
-            print("Weird output: '" + str(answer) + "'")
-            input()
     with open("../datasets/" + namefile + "_chatgpt.txt", "w", encoding="utf8") as file:
         file.write(txt)
     print("File writed.")
@@ -102,6 +106,6 @@ if __name__ == "__main__":
     # response = pickle.load(open("response2.pkl", "rb"))
     # print(response.choices[0].message.content)
 
-    namefile = "hats_train_best"
+    namefile = "hats_test"
     infer(namefile)
     eval(namefile)
