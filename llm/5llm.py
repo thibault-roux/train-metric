@@ -8,19 +8,19 @@ import progressbar
 
 def chat(ref, hypA, hypB, i):
     # check if the pickle exists
-    if os.path.exists("pickle/" + str(i) + ".pkl"):
-        return pickle.load(open("pickle/" + str(i) + ".pkl", "rb"))
+    if os.path.exists("pickle/pickle4/" + str(i) + ".pkl"):
+        return pickle.load(open("pickle/pickle4/" + str(i) + ".pkl", "rb"))
     else:
         response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model="gpt-4o", # gpt-3.5-turbo # gpt-4o
         messages=[
-            {"role": "system", "content": "Tu écris seulement 'A' ou 'B' pour choisir la meilleure transcription."},
+            {"role": "system", "content": "Nous appelons référence une transcription exacte d'un audio vers du texte. Deux hypothèses produites par des systèmes de reconnaissances de la parole. Tu écris seulement 'A' ou 'B' pour choisir la transcription qui te paraît la plus acceptable."},
             {"role": "user", "content": "Référence : Mon radiateur est en panne\nHypothèse A : Mon mon radiateur est en panne\nHypothèse B : Mon radieux pend"},
             {"role": "assistant", "content": "A"},
             {"role": "user", "content": "Référence : " + ref + "\nHypothèse A : " + hypA + "\nHypothèse B : " + hypB},
         ]
         )
-        pickle.dump(response, open("pickle/" + str(i) + ".pkl", "wb"))
+        pickle.dump(response, open("pickle/pickle4/" + str(i) + ".pkl", "wb"))
         return response
 
 
@@ -46,7 +46,7 @@ def read_hats(namefile):
     return dataset
 
 
-ihavemoney = False
+ihavemoney = True
 if ihavemoney:
     client = OpenAI(
         api_key=os.getenv("OPENAI_API_KEY"),
@@ -97,6 +97,6 @@ if __name__ == "__main__":
     # response = pickle.load(open("response2.pkl", "rb"))
     # print(response.choices[0].message.content)
 
-    namefile = "hats_train"
+    namefile = "hats_test"
     infer(namefile)
     eval(namefile)
