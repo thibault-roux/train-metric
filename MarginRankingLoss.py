@@ -99,12 +99,10 @@ class MarginRankingLoss(nn.Module):
     @property
     def citation(self) -> str:
         return """
-@misc{hermans2017defense,
-    title={In Defense of the Triplet Loss for Person Re-Identification}, 
-    author={Alexander Hermans and Lucas Beyer and Bastian Leibe},
-    year={2017},
-    eprint={1703.07737},
-    archivePrefix={arXiv},
-    primaryClass={cs.CV}
+@article{herbrich2000large,
+  title={Large margin rank boundaries for ordinal regression},
+  author={Herbrich, Ralf and Graepel, Thore and Obermayer, Klaus},
+  year={2000}
 }
+
 """
