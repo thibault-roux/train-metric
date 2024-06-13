@@ -7,7 +7,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 
 
-def get_dataloader(namefile, batch_size=16):
+def get_dataloader(namefile, batch_size=64):
     # train_examples = [InputExample(texts=['My dear friend', 'My best friend', 'Got to hell']),
     #     InputExample(texts=['My first sentence', 'My second sentence' 'Unrelated sentence'])]
 
@@ -19,8 +19,8 @@ def get_dataloader(namefile, batch_size=16):
             reference = line[0]
             hypA = line[1]
             hypB = line[3]
-            nbrA = int(line[2])
-            nbrB = int(line[4])
+            nbrA = float(line[2])
+            nbrB = float(line[4])
             if nbrA > nbrB:
                 train_examples.append(InputExample(texts=[reference, hypA, hypB]))
             elif nbrA < nbrB:
@@ -68,16 +68,16 @@ def evaluate(model, namefile):
 
 if __name__ == "__main__":
     model = SentenceTransformer('dangvantuan/sentence-camembert-base')
-    train_dataloader = get_dataloader("hats_train_best") # hats_train, hats_train_best, hats_extended
+    train_dataloader = get_dataloader("hats_extended_chatgpt") # hats_train, hats_train_best, hats_extended, hats_extended_chatgpt
     train_loss = sentence_transformers.losses.TripletLoss(model=model)
 
     # evaluate(model, "hats_test") # hats_test, hats_test_best # 0.7162698412698413
     
     # Tune the model
     print("Fine tuning...")
-    model.fit(train_objectives=[(train_dataloader, train_loss)], epochs=3, warmup_steps=10, optimizer_params={'lr': 2e-6}) # train_best, epochs=3, warmup_steps=10 worked well: 72.61
+    model.fit(train_objectives=[(train_dataloader, train_loss)], epochs=3, warmup_steps=10) #, optimizer_params={'lr': 2e-6}) # train_best, epochs=3, warmup_steps=10 worked well: 72.61
     # save in models/losstriplet
-    model.save("models/losstriplet2")
+    # model.save("models/losstriplet2")
 
     # Test the model
     evaluate(model, "hats_test") # hats_test, hats_test_best
