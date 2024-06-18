@@ -1,6 +1,7 @@
 import os
 from openai import OpenAI
 import pickle
+import json
 import progressbar
 
 """
@@ -16,16 +17,29 @@ def create_json(namefile):
     dataset = read_hats(namefile)
 
     txt = ""
+    list_json = []
     for i, data in enumerate(dataset):
         ref = data["reference"]
         hypA = data["hypA"]
         hypB = data["hypB"]
 
-        dico = {"custom_id": str(i), "method": "POST", "url": "/v1/chat/completions", "body": {"model": "gpt-4o", "messages": [{"role": "system", "content": "Une référence est une transcription exacte d'un audio. Deux hypothèses fausses sont proposées. Explique ta réflexion et finis ta phrase en écrivant 'A', 'B' ou 'C' si indécis."},{"role": "user", "content": "Référence : c' est à lui même\nHypothèse A : êtes à lui même\nHypothèse B : c' est euh à lui-même"},{"role": "assistant", "content": "Même si l'hypothèse B contient une disfluence ('euh'), elle correspond beaucoup mieux à la référence en termes de mots et de sens. La disfluence peut être tolérée si elle fait partie de l'original, tandis que l'erreur grammaticale de l'hypothèse A est plus problématique. Donc, la transcription la plus acceptable est l'hypothèse B."},{"role": "user", "content": "Référence : " + ref + "\nHypothèse A : " + hypA + "\nHypothèse B : " + hypB}],"max_tokens": 3000}}
-        txt += str(dico)
-    with open("batch/" + namefile + ".json", "w", encoding="utf8") as file:
-        file.write(txt)
+        dico = """{"custom_id": """ + str(i)
+        dico += """, "method": "POST", "url": "/v1/chat/completions", "body": {"model": "gpt-4o", "messages": [{"role": "system", "content": "Une référence est une transcription exacte d'un audio. Deux hypothèses fausses sont proposées. Explique ta réflexion et finis ta phrase en écrivant 'A', 'B' ou 'C' si indécis."},{"role": "user", "content": "Référence : c' est à lui même\\nHypothèse A : êtes à lui même\\nHypothèse B : c' est euh à lui-même"},{"role": "assistant", "content": "Même si l'hypothèse B contient une disfluence ('euh'), elle correspond beaucoup mieux à la référence en termes de mots et de sens. La disfluence peut être tolérée si elle fait partie de l'original, tandis que l'erreur grammaticale de l'hypothèse A est plus problématique. Donc, la transcription la plus acceptable est l'hypothèse B."},{"role": "user", "content": \"Référence : """
+        dico += ref + """\\nHypothèse A : """ + hypA + """\\nHypothèse B : """ + hypB + """}],"max_tokens": 3000}}"""
         
+        # dico = """{"custom_id": """ + str(i)
+        # dico += """, "method": "POST", "url": "/v1/chat/completions", "body": {"model": "gpt-4o", "messages": [{"role": "system", "content": "Une référence est une transcription exacte d'un audio. Deux hypothèses fausses sont proposées. Explique ta réflexion et finis ta phrase en écrivant 'A', 'B' ou 'C' si indécis."},{"role": "user", "content": "Référence : c' est à lui même\nHypothèse A : êtes à lui même\nHypothèse B : c' est euh à lui-même"},{"role": "assistant", "content": "Même si l'hypothèse B contient une disfluence ('euh'), elle correspond beaucoup mieux à la référence en termes de mots et de sens. La disfluence peut être tolérée si elle fait partie de l'original, tandis que l'erreur grammaticale de l'hypothèse A est plus problématique. Donc, la transcription la plus acceptable est l'hypothèse B."},{"role": "user", "content": \"Référence : """
+        # dico += ref + """\\nHypothèse A : """ + hypA + """\\nHypothèse B : """ + hypB + """}],"max_tokens": 3000}}"""
+        
+
+        # dico = """{"custom_id": "request-1", "method": "POST", "url": "/v1/chat/completions", "body": {"model": "gpt-3.5-turbo-0125", "messages": [{"role": "system", "content": "You are a helpful assistant."},{"role": "user", "content": "Hello world!"}],"max_tokens": 1000}}"""
+        txt += dico + "\n"
+        list_json.append(dico)
+    with open("batch/" + namefile + ".json1", "w", encoding="utf8") as file:
+        file.write(txt)
+    # with open("batch/" + namefile + ".json1", "w", encoding="utf8") as file:
+    #     json.dump(list_json, file, indent=4)
+    #     file.write("\n")
 
 # step 1 : save the file in a json
 # step 2 : upload the batch to openai
@@ -59,7 +73,7 @@ def read_hats(namefile):
     return dataset
 
 
-ihavemoney = False
+ihavemoney = True
 if ihavemoney:
     client = OpenAI(
         api_key=os.getenv("OPENAI_API_KEY"),
@@ -118,13 +132,25 @@ if __name__ == "__main__":
     # response = pickle.load(open("response2.pkl", "rb"))
     # print(response.choices[0].message.content)
 
-    namefile = "hats_test"
-    # create_json(namefile)
+    namefile = "temp_hats_train" # hats_test
+    create_json(namefile)
 
-    # import batch
+    # upload batch
     batch_input_file = client.files.create(
-        file=open("batch/" + namefile + ".json", "rb"),
+        file=open("batch/" + namefile + ".json1", "rb"),
         purpose="batch"
+    )
+
+    # create batch
+    batch_input_file_id = batch_input_file.id
+
+    client.batches.create(
+        input_file_id=batch_input_file_id,
+        endpoint="/v1/chat/completions",
+        completion_window="24h",
+        metadata={
+        "description": "nightly eval job"
+        }
     )
 
 
