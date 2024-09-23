@@ -14,15 +14,25 @@ def load(namefile):
 def unsplitter(namefile, newname):
     og = load(namefile)
 
-    with open(newname + ".txt", "w", encoding="utf8") as f:
-        f.write("reference\thypA\thypB\n")
+    with open(newname + ".txt", "w", encoding="utf8") as file:
+        file.write("reference\thypA\thypB\tannotation\n")
         for line in og:
             txt = line[0] + "\t" + line[1] + "\t" + line[2] + "\t" + line[3]
-            f.write(txt + "\n")
+            file.write(txt + "\n")
 
         for line in og:
+            if line[3] == "1":
+                line[3] = "0"
+            elif line[3] == "0":
+                line[3] = "1"
+            elif line[3] == "11":
+                line[3] = "10"
+            elif line[3] == "10":
+                line[3] = "11"
+            else:
+                print("Weird annotation: " + line[3])
             txt = line[0] + "\t" + line[2] + "\t" + line[1] + "\t" + line[3]
-            f.write(txt + "\n")
+            file.write(txt + "\n")
 
 
 if __name__ == "__main__":
