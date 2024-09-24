@@ -60,14 +60,14 @@ if __name__ == "__main__":
         for line in file:
             custom_id, result = line.strip().split("\t")
             id2choice[custom_id] = get_final_choice(result)
-            print(custom_id, result, id2choice[custom_id])
-            input()
+            # print(custom_id, id2triplets[custom_id], result, id2choice[custom_id])
+            # input()
 
 
-    for custom_id, result in id2result.items():
+    txt = "reference\thypA\thypB\tannotation\n"
+    for custom_id, choice in id2choice.items():
         triplet = id2triplets[custom_id]
-        print(triplet[0])
-        print(triplet[1])
-        print(triplet[2])
-        print(result)
-        print()
+        txt += triplet[0] + "\t" + triplet[1] + "\t" + triplet[2] + "\t" + choice + "\n"
+
+    with open("../datasets/" + inputname + "_annotation.txt", "w", encoding="utf8") as file:
+        file.write(txt)
