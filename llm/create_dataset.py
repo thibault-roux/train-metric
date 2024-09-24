@@ -55,10 +55,14 @@ if __name__ == "__main__":
             id2triplets[jsonline["custom_id"]] = triplet
 
     # read results
-    with open("batch/" + inputname + "_results.jsonl", "r", encoding="utf8") as file:
-        id2result = dict()
+    with open("batch/" + inputname + "_results.txt", "r", encoding="utf8") as file:
+        id2choice = dict()
         for line in file:
             custom_id, result = line.strip().split("\t")
+            id2choice[custom_id] = get_final_choice(result)
+            print(custom_id, result, id2choice[custom_id])
+            input()
+
 
     for custom_id, result in id2result.items():
         triplet = id2triplets[custom_id]
