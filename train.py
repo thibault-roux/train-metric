@@ -11,7 +11,7 @@ import os
 
 import test
 
-tokenizer = CamembertTokenizer.from_pretrained('dangvantuan/sentence-camembert-large')
+
 
 def read_hats(namefile):
     # dataset = [{"reference": ref, "hypA": hypA, "nbrA": nbrA, "hypB": hypB, "nbrB": nbrB}, ...]
@@ -24,7 +24,11 @@ def read_hats(namefile):
             dictionary["ref"] = line[0]
             dictionary["hypA"] = line[1]
             dictionary["hypB"] = line[2]
-            annotation = float(line[3])
+            try:
+                annotation = float(line[3])
+            except:
+                print(line)
+                raise
             if annotation == 0.0: # nbrA < nbrB | i.e hypB is the best
                 dictionary["annotation"] = -1.0
             elif annotation == 1.0: # nbrA > nbrB | i.e hypA is the best
@@ -32,6 +36,10 @@ def read_hats(namefile):
             elif annotation == 0.5:
                 # dictionary["annotation"] = [0.5]
                 continue
+            elif annotation == 11:
+                dictionary["annotation"] = 1.0
+            elif annotation == 10:
+                dictionary["annotation"] = 0.0
             else:
                 raise Exception("annotation is not 0.0, 0.5 or 1.0")
             dataset.append(dictionary)
@@ -161,78 +169,120 @@ def evaluate_siamese_network(siamese_network, dataloader):
     return accuracy
 
 
-# set dataset
-max_length = 30
-hats_train = read_hats("datasets/hats_annotation_train.txt")
-hats_test = read_hats("datasets/hats_annotation_test.txt")
-hats_dataset_train = HATSDataset(hats_train, tokenizer, max_length)
-hats_dataset_test = HATSDataset(hats_test, tokenizer, max_length)
 
-# Set up the Siamese network and the dataset
-pretrained_model_name = 'dangvantuan/sentence-camembert-large'
-siamese_network = SiameseNetwork(pretrained_model_name, max_length)
-# Load the last saved pretrained model if available
-saved_model_path = 'models/large/fine_tuned_camembert_hats_model.pth'
-if os.path.exists(saved_model_path):
-    siamese_network.load_state_dict(torch.load(saved_model_path))
-    print(f"Loaded pretrained model from {saved_model_path}")
-else:
-    print(f"Pretrained model not found at {saved_model_path}. Training from scratch.")
-siamese_with_margin_loss = SiameseNetworkWithMarginLoss(siamese_network)
-
-
-# Set up data loader for training
-batch_size = 32
-dataloader = DataLoader(hats_dataset_train, batch_size=batch_size, shuffle=True)
-
-# Set up data loader for evaluation
-eval_dataloader = DataLoader(hats_dataset_test, batch_size=batch_size, shuffle=False)
-
-# Set up optimizer
-optimizer = Adam(siamese_with_margin_loss.parameters(), lr=1e-5)
-
-# Training loop
-num_epochs = 40
-losses = []
-best_accuracy = 0
-for epoch in range(num_epochs):
-    print(epoch)
-    bar = progressbar.ProgressBar(max_value=len(dataloader))
-    for i, batch in enumerate(dataloader):
-        bar.update(i)
-
-        input_ids1 = batch["input_ids1"]
-        attention_mask1 = batch["attention_mask1"]
-        input_ids2 = batch["input_ids2"]
-        attention_mask2 = batch["attention_mask2"]
-        input_ids3 = batch["input_ids3"]
-        attention_mask3 = batch["attention_mask3"]
-        labels = batch["label"]
-
-        optimizer.zero_grad()
-        loss = siamese_with_margin_loss(input_ids1, attention_mask1, input_ids2, attention_mask2, input_ids3, attention_mask3, labels)
-        loss.backward()
-        losses.append(loss.item())
-        # print(loss.item())
-        optimizer.step()
-
-    # Save the fine-tuned model
-    torch.save(siamese_network.state_dict(), saved_model_path + f".{epoch}")
-
-    # Evaluation
-    accuracy = evaluate_siamese_network(siamese_network, eval_dataloader)
-    print(f"Epoch {epoch + 1}/{num_epochs}, Accuracy: {accuracy:.4f}")
-    # write it in results/accuracy.txt
-    with open("results/accuracy.txt", "a", encoding="utf8") as file:
-        file.write(str(epoch) + "\t" + str(accuracy) + "\n")
+def train(model_name, train_data, testing_dataset_name, num_epochs):
+    if model_name == 'french':
+        pretrained_model_name = 'dangvantuan/sentence-camembert-large'
+    elif model_name == 'multi':
+        pretrained_model_name = 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2'
+    else:
+        raise Exception("model_name must be 'french' or 'multi'")
     
-    test.specific_epoch(epoch) # test the fine-tuned model on HATS
+    if train_data == 'hats_gpt':
+        hats_train = read_hats("datasets/hats_annotation_gpt.txt")
+    elif train_data == 'hats_train':
+        hats_train = read_hats("datasets/hats_annotation_train.txt")
+    elif train_data == 'hats_extended':
+        hats_train = read_hats("datasets/extended_hats_annotation.txt")
+    elif train_data == "hats-5k":
+        hats_train = read_hats("datasets/hats-5k_annotation.txt")
+    elif train_data == "hats-5k_temp":
+        hats_train = read_hats("datasets/hats-5k_temp_annotation.txt")
+    # elif train_data == 'hats_train_best':
+    #     hats_train = read_hats("datasets/hats_annotation_train_best.txt")
+    else:
+        raise Exception("train_data does not exist")
+    
 
-    if accuracy > best_accuracy:
-        best_accuracy = accuracy
-        torch.save(siamese_network.state_dict(), saved_model_path)
+    tokenizer = CamembertTokenizer.from_pretrained(pretrained_model_name)
 
-print("losses:", losses)
+    # set dataset
+    max_length = 30
 
-# Save the fine-tuned model
-# siamese_network.save_pretrained('fine_tuned_camembert_hats_model')
+    # hats_test = read_hats("datasets/hats_annotation_test.txt")
+    # hats_test = read_hats("datasets/" + testing_dataset_name)
+    hats_dataset_train = HATSDataset(hats_train, tokenizer, max_length)
+    # hats_dataset_test = HATSDataset(hats_test, tokenizer, max_length)
+
+    # Set up the Siamese network and the dataset
+    siamese_network = SiameseNetwork(pretrained_model_name, max_length)
+    # Load the last saved pretrained model if available
+    last_epoch = -1
+    for epoch in range(num_epochs):
+        saved_model_path = 'models/' + model_name + "/" + train_data + '/model.pth'
+        if os.path.exists(saved_model_path + '.' + str(epoch)):
+            last_epoch = epoch
+    if last_epoch != -1:
+        saved_model_path = 'models/' + model_name + "/" + train_data + '/model.pth'
+        siamese_network.load_state_dict(torch.load(saved_model_path + '.' + str(last_epoch)))
+        print(f"Loaded trained model from local path: {saved_model_path}")
+    else:
+        print(f"Local trained model not found at {saved_model_path}. Training from pretrained.")
+    siamese_with_margin_loss = SiameseNetworkWithMarginLoss(siamese_network)
+
+    # Set up data loader for training
+    batch_size = 32
+    dataloader = DataLoader(hats_dataset_train, batch_size=batch_size, shuffle=True)
+    # Set up data loader for evaluation
+    # eval_dataloader = DataLoader(hats_dataset_test, batch_size=batch_size, shuffle=False)
+    # Set up optimizer
+    optimizer = Adam(siamese_with_margin_loss.parameters(), lr=1e-5)
+
+    # Training loop
+    losses = []
+    best_accuracy = 0
+    for epoch in range(last_epoch+1, num_epochs):
+        print(epoch)
+        bar = progressbar.ProgressBar(max_value=len(dataloader))
+        for i, batch in enumerate(dataloader):
+            bar.update(i)
+
+            input_ids1 = batch["input_ids1"]
+            attention_mask1 = batch["attention_mask1"]
+            input_ids2 = batch["input_ids2"]
+            attention_mask2 = batch["attention_mask2"]
+            input_ids3 = batch["input_ids3"]
+            attention_mask3 = batch["attention_mask3"]
+            labels = batch["label"]
+
+            optimizer.zero_grad()
+            loss = siamese_with_margin_loss(input_ids1, attention_mask1, input_ids2, attention_mask2, input_ids3, attention_mask3, labels)
+            loss.backward()
+            losses.append(loss.item())
+            # print(loss.item())
+            optimizer.step()
+        
+        torch.save(siamese_network.state_dict(), saved_model_path + f".{epoch}")
+        print(f"Saved model at {saved_model_path}.{epoch}")
+        
+        # Save the fine-tuned model if performances are good
+        # 1) load model
+        model = siamese_network.camembert
+        memory = (tokenizer, model)
+        # 2) load dataset
+        dataset = test.read_dataset(testing_dataset_name)
+        # 3) evaluate
+        semdist2 = test.semdist2
+        x_score = test.evaluator(semdist2, dataset, memory=memory, certitude=0)
+        # 4) save model
+        # if x_score > best_accuracy:
+        #     torch.save(siamese_network.state_dict(), saved_model_path + f".{epoch}")
+        #     print(f"Saved model at {saved_model_path}.{epoch}")
+        #     best_accuracy = x_score
+        print(f"Accuracy: {x_score}")
+
+
+
+if __name__ == "__main__":
+    model_names = ['french'] #, 'multi']
+    train_datas = ['hats-5k_temp'] # hats_train', 'hats_extended', 'hats_train_best'
+    testing_dataset_name = "hats.txt" # "hats_annotation.txt"
+
+    num_epochs = 1
+    for model_name in model_names:
+        for train_data in train_datas:
+            print("\n\n--------------------")
+            print("model_name:", model_name)
+            print("train_data:", train_data)
+            print("epoch:", num_epochs)
+            train(model_name, train_data, testing_dataset_name, num_epochs)
